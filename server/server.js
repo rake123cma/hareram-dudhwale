@@ -11,6 +11,9 @@ const { csrfProtection, addCSRFToken } = require('./middleware/csrf');
 dotenv.config({ path: path.join(__dirname, '../.env') });
 
 const app = express();
+console.log('Starting server...');
+console.log('Node ENV:', process.env.NODE_ENV);
+console.log('PORT:', process.env.PORT || 5000);
 
 // Security middleware
 app.use((req, res, next) => {
@@ -160,6 +163,11 @@ mongoose.connect(process.env.MONGO_URI, {
 .catch(err => {
   console.error('MongoDB connection error:', err);
   process.exit(1);
+});
+
+// Health check endpoint for Render
+app.get('/health', (req, res) => {
+  res.status(200).json({ status: 'OK', timestamp: new Date().toISOString() });
 });
 
 // Routes
