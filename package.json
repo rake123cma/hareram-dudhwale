@@ -4,9 +4,9 @@
   "description": "Backend for Hareram Dudhwale milk business application",
   "main": "server.js",
   "scripts": {
-    "start": "set NODE_ENV=production&&node server/server.js",
+    "start": "node server/server.js",
     "dev": "nodemon server/server.js",
-    "build": "cd client && npm install && npm run build",
+    "build": "npm install && cd client && npm install && npm run build",
     "build-production": "npm run build && npm start",
     "dev-full": "npm run build && npm run dev"
   },
