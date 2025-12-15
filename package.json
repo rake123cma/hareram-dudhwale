@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node server/server.js",
     "dev": "nodemon server/server.js",
-    "build": "npm install && cd client && npm install && npm run build",
+    "build": "echo 'Installing backend dependencies...' && npm install && echo 'Installing frontend dependencies...' && cd client && npm install && echo 'Building React app...' && npm run build",
     "build-production": "npm run build && npm start",
     "dev-full": "npm run build && npm run dev"
   },
