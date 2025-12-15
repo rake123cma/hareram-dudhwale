@@ -23,7 +23,7 @@ const Login = () => {
     setLoading(true);
 
     try {
-      const res = await axios.post('http://localhost:5000/api/auth/login', { username: mobile, password }, { timeout: 5000 });
+      const res = await axios.post('/api/auth/login', { username: mobile, password }, { timeout: 5000 });
       try {
         localStorage.setItem('token', res.data.token);
       } catch (storageErr) {
@@ -36,7 +36,7 @@ const Login = () => {
       if (err.response?.status === 401) {
         // Check if mobile is registered by trying to send OTP (silently)
         try {
-          await axios.post('http://localhost:5000/api/auth/send-otp', { mobile }, { timeout: 3000 });
+          await axios.post('/api/auth/send-otp', { mobile }, { timeout: 3000 });
           alert('Invalid password. Please check your password.');
         } catch (otpErr) {
           alert('This mobile number is not registered. Redirecting to registration page.');
@@ -54,7 +54,7 @@ const Login = () => {
     e.preventDefault();
     setLoading(true);
     try {
-      const res = await axios.post('http://localhost:5000/api/auth/login', { username, password: adminPassword }, { timeout: 5000 });
+      const res = await axios.post('/api/auth/login', { username, password: adminPassword }, { timeout: 5000 });
       try {
         localStorage.setItem('token', res.data.token);
       } catch (storageErr) {

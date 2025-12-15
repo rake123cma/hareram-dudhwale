@@ -34,7 +34,7 @@ const CustomersList = () => {
 
   const fetchCustomers = async () => {
     try {
-      const response = await axios.get('http://localhost:5000/api/customers');
+      const response = await axios.get('/api/customers');
       // Filter to show only milk customers (those with customer_type === 'daily milk customer')
       const milkCustomers = response.data.filter(customer => customer.customer_type === 'daily milk customer');
       setCustomers(milkCustomers);
@@ -48,7 +48,7 @@ const CustomersList = () => {
 
   const fetchCategories = async () => {
     try {
-      const response = await axios.get('http://localhost:5000/api/categories');
+      const response = await axios.get('/api/categories');
       setCategories(response.data);
     } catch (err) {
       console.error('Failed to fetch categories');
@@ -69,9 +69,9 @@ const CustomersList = () => {
       };
 
       if (editingCustomer) {
-        await axios.put(`http://localhost:5000/api/customers/${editingCustomer._id}`, data, config);
+        await axios.put(`/api/customers/${editingCustomer._id}`, data, config);
       } else {
-        await axios.post('http://localhost:5000/api/customers', data, config);
+        await axios.post('/api/customers', data, config);
       }
 
       fetchCustomers();
@@ -125,7 +125,7 @@ const CustomersList = () => {
         const config = {
           headers: { Authorization: `Bearer ${token}` }
         };
-        await axios.delete(`http://localhost:5000/api/customers/${id}`, config);
+        await axios.delete(`/api/customers/${id}`, config);
         fetchCustomers();
         Swal.fire({
           icon: 'success',

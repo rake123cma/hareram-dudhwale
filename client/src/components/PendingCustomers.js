@@ -24,7 +24,7 @@ const PendingCustomers = () => {
 
   const fetchPendingCustomers = async () => {
     try {
-      const response = await axios.get('http://localhost:5000/api/customers');
+      const response = await axios.get('/api/customers');
 
       // Show all customers in New Registrations table permanently
       let allCustomers = response.data.map(customer => ({
@@ -56,7 +56,7 @@ const PendingCustomers = () => {
       const config = {
         headers: { Authorization: `Bearer ${token}` }
       };
-      await axios.put(`http://localhost:5000/api/customers/${editingCustomer._id}`, data, config);
+      await axios.put(`/api/customers/${editingCustomer._id}`, data, config);
 
       Swal.fire({
         icon: 'success',
@@ -113,7 +113,7 @@ const PendingCustomers = () => {
         const config = {
           headers: { Authorization: `Bearer ${token}` }
         };
-        await axios.delete(`http://localhost:5000/api/customers/${id}`, config);
+        await axios.delete(`/api/customers/${id}`, config);
         fetchPendingCustomers();
         Swal.fire({
           icon: 'success',

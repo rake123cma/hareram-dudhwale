@@ -52,7 +52,7 @@ const ExpensesManagement = () => {
         setLoading(false);
         return;
       }
-      const response = await axios.get('http://localhost:5000/api/expenses', {
+      const response = await axios.get('/api/expenses', {
         headers: { Authorization: `Bearer ${token}` }
       });
       setExpenses(response.data);
@@ -87,7 +87,7 @@ const ExpensesManagement = () => {
       const data = { ...formData, amount: parseFloat(formData.amount) };
 
       if (editingExpense) {
-        await axios.put(`http://localhost:5000/api/expenses/${editingExpense._id}`, data, {
+        await axios.put(`/api/expenses/${editingExpense._id}`, data, {
           headers: { Authorization: `Bearer ${token}` }
         });
         Swal.fire({
@@ -98,7 +98,7 @@ const ExpensesManagement = () => {
           showConfirmButton: false
         });
       } else {
-        await axios.post('http://localhost:5000/api/expenses', data, {
+        await axios.post('/api/expenses', data, {
           headers: { Authorization: `Bearer ${token}` }
         });
         Swal.fire({
@@ -151,7 +151,7 @@ const ExpensesManagement = () => {
     if (result.isConfirmed) {
       try {
         const token = localStorage.getItem('token');
-        await axios.delete(`http://localhost:5000/api/expenses/${id}`, {
+        await axios.delete(`/api/expenses/${id}`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         Swal.fire({

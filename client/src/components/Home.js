@@ -44,7 +44,7 @@ const Home = () => {
 
   const fetchCategories = async () => {
     try {
-      const response = await axios.get('http://localhost:5000/api/categories');
+      const response = await axios.get('/api/categories');
       setCategories(response.data);
     } catch (err) {
     }
@@ -52,7 +52,7 @@ const Home = () => {
 
   const fetchProducts = async () => {
     try {
-      const response = await axios.get('http://localhost:5000/api/products');
+      const response = await axios.get('/api/products');
       const activeProducts = response.data.filter(product => product.is_active);
       setProducts(activeProducts);
     } catch (err) {
@@ -62,7 +62,7 @@ const Home = () => {
 
   const fetchReviews = async () => {
     try {
-      const response = await axios.get('http://localhost:5000/api/reviews/approved');
+      const response = await axios.get('/api/reviews/approved');
       setReviews(response.data);
     } catch (err) {
       console.error('Failed to fetch reviews:', err);
@@ -72,7 +72,7 @@ const Home = () => {
 
   const fetchFarmImages = async () => {
     try {
-      const response = await axios.get('http://localhost:5000/api/admin/farm-images');
+      const response = await axios.get('/api/admin/farm-images');
       setFarmImages(response.data);
     } catch (err) {
       console.error('Failed to fetch farm images:', err);
@@ -82,7 +82,7 @@ const Home = () => {
 
   const fetchAdminSettings = async () => {
     try {
-      const response = await axios.get('http://localhost:5000/api/admin/settings');
+      const response = await axios.get('/api/admin/settings');
       setAdminSettings(response.data);
     } catch (err) {
       console.error('Failed to fetch admin settings:', err);
@@ -119,7 +119,7 @@ const Home = () => {
     setAuthLoading(true);
     try {
       // For now, use existing login endpoint with dummy password
-      const res = await axios.post('http://localhost:5000/api/auth/login', {
+      const res = await axios.post('/api/auth/login', {
         username: mobile,
         password: 'customer123' // dummy password for testing
       });
@@ -143,7 +143,7 @@ const Home = () => {
     setAuthLoading(true);
     try {
       // For now, skip OTP verification and use existing login
-      const res = await axios.post('http://localhost:5000/api/auth/login', {
+      const res = await axios.post('/api/auth/login', {
         username: mobile,
         password: 'customer123' // dummy password for testing
       });
@@ -168,7 +168,7 @@ const Home = () => {
         subscription_amount: registerData.subscription_amount ? parseFloat(registerData.subscription_amount) : undefined,
         price_per_liter: registerData.price_per_liter ? parseFloat(registerData.price_per_liter) : undefined
       };
-      await axios.post('http://localhost:5000/api/auth/register', data);
+      await axios.post('/api/auth/register', data);
       alert('Registration successful! OTP sent to your mobile number.');
       setAuthMode('otp');
     } catch (err) {
@@ -681,7 +681,7 @@ const Home = () => {
               farmImages.map((image, index) => (
                 <div key={image._id} className="group relative overflow-hidden rounded-2xl shadow-2xl hover:shadow-green-500/25 transition-all duration-500 hover:-translate-y-2">
                   <div className="aspect-square overflow-hidden">
-                    <img src={`http://localhost:5000${image.url}`} alt={image.title || `Farm Image ${index + 1}`} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
+                    <img src={`${image.url}`} alt={image.title || `Farm Image ${index + 1}`} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
                   </div>
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                   <div className="absolute bottom-4 left-4 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300">

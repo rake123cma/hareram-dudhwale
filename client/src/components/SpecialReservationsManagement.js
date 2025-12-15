@@ -35,7 +35,7 @@ const SpecialReservationsManagement = () => {
       const token = localStorage.getItem('token');
       const config = { headers: { Authorization: `Bearer ${token}` } };
 
-      const response = await axios.get('http://localhost:5000/api/special-reservations', config);
+      const response = await axios.get('/api/special-reservations', config);
       setReservations(response.data);
       setLoading(false);
     } catch (err) {
@@ -46,7 +46,7 @@ const SpecialReservationsManagement = () => {
 
   const fetchProducts = async () => {
     try {
-      const response = await axios.get('http://localhost:5000/api/products');
+      const response = await axios.get('/api/products');
       // Filter only special advance bookable products
       setProducts(response.data.filter(p => p.is_special_product && p.is_advance_bookable));
     } catch (err) {
@@ -59,7 +59,7 @@ const SpecialReservationsManagement = () => {
       const token = localStorage.getItem('token');
       const config = { headers: { Authorization: `Bearer ${token}` } };
 
-      const response = await axios.get('http://localhost:5000/api/customers', config);
+      const response = await axios.get('/api/customers', config);
       setCustomers(response.data);
     } catch (err) {
       console.error('Failed to fetch customers:', err);
@@ -85,9 +85,9 @@ const SpecialReservationsManagement = () => {
       }
 
       if (editingReservation) {
-        await axios.put(`http://localhost:5000/api/special-reservations/${editingReservation._id}`, data, config);
+        await axios.put(`/api/special-reservations/${editingReservation._id}`, data, config);
       } else {
-        await axios.post('http://localhost:5000/api/special-reservations', data, config);
+        await axios.post('/api/special-reservations', data, config);
       }
 
       fetchReservations();
@@ -132,7 +132,7 @@ const SpecialReservationsManagement = () => {
         const token = localStorage.getItem('token');
         const config = { headers: { Authorization: `Bearer ${token}` } };
 
-        await axios.delete(`http://localhost:5000/api/special-reservations/${id}`, config);
+        await axios.delete(`/api/special-reservations/${id}`, config);
         fetchReservations();
         Swal.fire('Deleted!', 'Reservation has been deleted.', 'success');
       } catch (err) {
@@ -147,7 +147,7 @@ const SpecialReservationsManagement = () => {
       const token = localStorage.getItem('token');
       const config = { headers: { Authorization: `Bearer ${token}` } };
 
-      await axios.put(`http://localhost:5000/api/special-reservations/${id}/status`, { status }, config);
+      await axios.put(`/api/special-reservations/${id}/status`, { status }, config);
       fetchReservations();
       Swal.fire('Success', `Reservation status updated to ${status}!`, 'success');
     } catch (err) {
@@ -160,7 +160,7 @@ const SpecialReservationsManagement = () => {
       const token = localStorage.getItem('token');
       const config = { headers: { Authorization: `Bearer ${token}` } };
 
-      await axios.put(`http://localhost:5000/api/special-reservations/${id}/payment`, { payment_status }, config);
+      await axios.put(`/api/special-reservations/${id}/payment`, { payment_status }, config);
       fetchReservations();
       Swal.fire('Success', `Payment status updated to ${payment_status}!`, 'success');
     } catch (err) {

@@ -110,7 +110,7 @@ describe('Login Component', () => {
     fireEvent.click(submitButton);
 
     await waitFor(() => {
-      expect(mockedAxios.post).toHaveBeenCalledWith('http://localhost:5000/api/auth/login', {
+      expect(mockedAxios.post).toHaveBeenCalledWith('/api/auth/login', {
         mobile: '1234567890',
         password: 'password123'
       });
@@ -165,7 +165,7 @@ describe('Login Component', () => {
     fireEvent.click(submitButton);
 
     await waitFor(() => {
-      expect(mockedAxios.post).toHaveBeenCalledWith('http://localhost:5000/api/auth/login', {
+      expect(mockedAxios.post).toHaveBeenCalledWith('/api/auth/login', {
         username: 'admin',
         password: 'adminpass'
       });

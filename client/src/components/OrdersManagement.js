@@ -29,7 +29,7 @@ const OrdersManagement = () => {
 
       const config = { headers: { Authorization: `Bearer ${token}` } };
 
-      const response = await axios.get('http://localhost:5000/api/orders', config);
+      const response = await axios.get('/api/orders', config);
       if (response.data && Array.isArray(response.data.orders)) {
         setOrders(response.data.orders);
       } else {
@@ -53,7 +53,7 @@ const OrdersManagement = () => {
       }
 
       const config = { headers: { Authorization: `Bearer ${token}` } };
-      const response = await axios.get('http://localhost:5000/api/special-reservations', config);
+      const response = await axios.get('/api/special-reservations', config);
       setSpecialReservations(Array.isArray(response.data) ? response.data : []);
     } catch (err) {
       console.error('Failed to fetch special reservations:', err);
@@ -66,7 +66,7 @@ const OrdersManagement = () => {
       const token = localStorage.getItem('token');
       const config = { headers: { Authorization: `Bearer ${token}` } };
 
-      await axios.put(`http://localhost:5000/api/orders/${orderId}/status`, { order_status: newStatus }, config);
+      await axios.put(`/api/orders/${orderId}/status`, { order_status: newStatus }, config);
 
       // Refresh orders list
       await fetchOrders();
@@ -88,7 +88,7 @@ const OrdersManagement = () => {
       const token = localStorage.getItem('token');
       const config = { headers: { Authorization: `Bearer ${token}` } };
 
-      await axios.put(`http://localhost:5000/api/special-reservations/${reservationId}/status`, { status: newStatus }, config);
+      await axios.put(`/api/special-reservations/${reservationId}/status`, { status: newStatus }, config);
       fetchSpecialReservations();
       showAlert(`Special reservation status updated to ${newStatus}`, 'success');
     } catch (err) {
@@ -101,7 +101,7 @@ const OrdersManagement = () => {
       const token = localStorage.getItem('token');
       const config = { headers: { Authorization: `Bearer ${token}` } };
 
-      await axios.put(`http://localhost:5000/api/special-reservations/${reservationId}/payment`, { payment_status: newPaymentStatus }, config);
+      await axios.put(`/api/special-reservations/${reservationId}/payment`, { payment_status: newPaymentStatus }, config);
       fetchSpecialReservations();
       showAlert(`Payment status updated to ${newPaymentStatus}`, 'success');
     } catch (err) {
@@ -114,7 +114,7 @@ const OrdersManagement = () => {
       const token = localStorage.getItem('token');
       const config = { headers: { Authorization: `Bearer ${token}` } };
 
-      await axios.put(`http://localhost:5000/api/special-reservations/${reservationId}/delivery-date`, { expected_delivery_date: newDeliveryDate }, config);
+      await axios.put(`/api/special-reservations/${reservationId}/delivery-date`, { expected_delivery_date: newDeliveryDate }, config);
       fetchSpecialReservations();
       setEditingDeliveryDate(false);
       setNewDeliveryDate('');

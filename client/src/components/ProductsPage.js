@@ -73,7 +73,7 @@ const ProductsPage = () => {
 
   const fetchProducts = async () => {
     try {
-      const response = await axios.get('http://localhost:5000/api/products');
+      const response = await axios.get('/api/products');
       // Filter only active products
       const activeProducts = response.data.filter(product => product.is_active);
       setProducts(activeProducts);

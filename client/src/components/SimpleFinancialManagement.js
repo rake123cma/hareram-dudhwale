@@ -53,7 +53,7 @@ const SimpleFinancialManagement = () => {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.get('http://localhost:5000/api/financial/payables-simple', {
+      const response = await axios.get('/api/financial/payables-simple', {
         headers: { Authorization: `Bearer ${token}` }
       });
       setPayables(response.data);
@@ -69,7 +69,7 @@ const SimpleFinancialManagement = () => {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.get('http://localhost:5000/api/financial/receivables-simple', {
+      const response = await axios.get('/api/financial/receivables-simple', {
         headers: { Authorization: `Bearer ${token}` }
       });
       setReceivables(response.data);
@@ -84,7 +84,7 @@ const SimpleFinancialManagement = () => {
   const fetchPayments = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.get('http://localhost:5000/api/financial/payments', {
+      const response = await axios.get('/api/financial/payments', {
         headers: { Authorization: `Bearer ${token}` }
       });
       setPayments(response.data);
@@ -98,7 +98,7 @@ const SimpleFinancialManagement = () => {
     e.preventDefault();
     try {
       const token = localStorage.getItem('token');
-      await axios.post('http://localhost:5000/api/financial/payables-simple', payableForm, {
+      await axios.post('/api/financial/payables-simple', payableForm, {
         headers: { Authorization: `Bearer ${token}` }
       });
       Swal.fire('Success', 'Payable added successfully', 'success');
@@ -120,7 +120,7 @@ const SimpleFinancialManagement = () => {
     e.preventDefault();
     try {
       const token = localStorage.getItem('token');
-      await axios.post('http://localhost:5000/api/financial/receivables-simple', receivableForm, {
+      await axios.post('/api/financial/receivables-simple', receivableForm, {
         headers: { Authorization: `Bearer ${token}` }
       });
       Swal.fire('Success', 'Receivable added successfully', 'success');
@@ -142,7 +142,7 @@ const SimpleFinancialManagement = () => {
     e.preventDefault();
     try {
       const token = localStorage.getItem('token');
-      await axios.post('http://localhost:5000/api/financial/payments', paymentForm, {
+      await axios.post('/api/financial/payments', paymentForm, {
         headers: { Authorization: `Bearer ${token}` }
       });
       Swal.fire('Success', 'Payment recorded successfully', 'success');

@@ -32,7 +32,7 @@ const ProductsList = () => {
 
   const fetchProducts = async () => {
     try {
-      const response = await axios.get('http://localhost:5000/api/products');
+      const response = await axios.get('/api/products');
       setProducts(response.data);
       setLoading(false);
     } catch (err) {
@@ -45,7 +45,7 @@ const ProductsList = () => {
     try {
       const token = localStorage.getItem('token');
       const config = { headers: { Authorization: `Bearer ${token}` } };
-      const response = await axios.get('http://localhost:5000/api/categories', config);
+      const response = await axios.get('/api/categories', config);
       setCategories(response.data);
     } catch (err) {
       console.error('Failed to fetch categories:', err);
@@ -72,9 +72,9 @@ const ProductsList = () => {
       };
 
       if (editingProduct) {
-        await axios.put(`http://localhost:5000/api/products/${editingProduct._id}`, data, config);
+        await axios.put(`/api/products/${editingProduct._id}`, data, config);
       } else {
-        await axios.post('http://localhost:5000/api/products', data, config);
+        await axios.post('/api/products', data, config);
       }
 
       fetchProducts();
@@ -118,7 +118,7 @@ const ProductsList = () => {
       try {
         const token = localStorage.getItem('token');
         const config = { headers: { Authorization: `Bearer ${token}` } };
-        await axios.delete(`http://localhost:5000/api/products/${id}`, config);
+        await axios.delete(`/api/products/${id}`, config);
         fetchProducts();
         Swal.fire({
           icon: 'success',

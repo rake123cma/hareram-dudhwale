@@ -44,7 +44,7 @@ const BillingManagement = () => {
         setLoading(false);
         return;
       }
-      const response = await axios.get('http://localhost:5000/api/billing', {
+      const response = await axios.get('/api/billing', {
         headers: { Authorization: `Bearer ${token}` }
       });
       setBills(response.data);
@@ -61,7 +61,7 @@ const BillingManagement = () => {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.post('http://localhost:5000/api/billing/generate-monthly', generateForm, {
+      const response = await axios.post('/api/billing/generate-monthly', generateForm, {
         headers: { Authorization: `Bearer ${token}` }
       });
       Swal.fire({
@@ -83,7 +83,7 @@ const BillingManagement = () => {
   const handleDownloadPDF = async (bill) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.get(`http://localhost:5000/api/billing/${bill._id}/pdf`, {
+      const response = await axios.get(`/api/billing/${bill._id}/pdf`, {
         headers: { Authorization: `Bearer ${token}` },
         responseType: 'blob'
       });
@@ -134,7 +134,7 @@ const BillingManagement = () => {
     if (reminderText) {
       try {
         const token = localStorage.getItem('token');
-        await axios.post('http://localhost:5000/api/reminders', {
+        await axios.post('/api/reminders', {
           customer_id: bill.customer_id._id,
           bill_id: bill._id,
           message: reminderText,
@@ -272,7 +272,7 @@ const BillingManagement = () => {
 
     try {
       const token = localStorage.getItem('token');
-      await axios.post(`http://localhost:5000/api/billing/${bill._id}/payment`, {
+      await axios.post(`/api/billing/${bill._id}/payment`, {
         payment_date: formValues.date,
         payment_method: formValues.mode,
         amount: formValues.amount,
@@ -302,7 +302,7 @@ const BillingManagement = () => {
   const handleStatusUpdate = async (billId, newStatus) => {
     try {
       const token = localStorage.getItem('token');
-      await axios.put(`http://localhost:5000/api/billing/${billId}/status`, {
+      await axios.put(`/api/billing/${billId}/status`, {
         status: newStatus
       }, {
         headers: { Authorization: `Bearer ${token}` }
@@ -318,7 +318,7 @@ const BillingManagement = () => {
       const token = localStorage.getItem('token');
 
       // Fetch the full bill with populated customer data
-      const billResponse = await axios.get(`http://localhost:5000/api/billing/${bill._id}`, {
+      const billResponse = await axios.get(`/api/billing/${bill._id}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       const fullBill = billResponse.data;
@@ -336,7 +336,7 @@ const BillingManagement = () => {
       console.log('Fetching attendance for customer:', fullBill.customer_id._id, 'period:', fullBill.billing_period);
 
       // Fetch attendance data for this customer and billing period
-      const attendanceResponse = await axios.get(`http://localhost:5000/api/customers/my-sales?customerId=${fullBill.customer_id._id}`, {
+      const attendanceResponse = await axios.get(`/api/customers/my-sales?customerId=${fullBill.customer_id._id}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       console.log('Attendance API response:', attendanceResponse.data);

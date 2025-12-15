@@ -23,7 +23,7 @@ const DailyAttendance = () => {
     try {
       const token = localStorage.getItem('token');
       const config = token ? { headers: { Authorization: `Bearer ${token}` } } : {};
-      const response = await axios.get('http://localhost:5000/api/customers', config);
+      const response = await axios.get('/api/customers', config);
       // Only show customers who are currently daily milk customers
       const milkCustomers = response.data.filter(customer =>
         customer.is_active && customer.customer_type === 'daily milk customer'
@@ -49,7 +49,7 @@ const DailyAttendance = () => {
     try {
       const token = localStorage.getItem('token');
       const config = token ? { headers: { Authorization: `Bearer ${token}` } } : {};
-      const response = await axios.get(`http://localhost:5000/api/daily-attendance/date/${selectedDate}`, config);
+      const response = await axios.get(`/api/daily-attendance/date/${selectedDate}`, config);
       const attendanceData = response.data;
 
       // If no attendance records exist, initialize with all customers as absent
@@ -199,7 +199,7 @@ const DailyAttendance = () => {
       const token = localStorage.getItem('token');
       const config = { headers: { Authorization: `Bearer ${token}` } };
 
-      await axios.post('http://localhost:5000/api/daily-attendance/bulk', {
+      await axios.post('/api/daily-attendance/bulk', {
         date: selectedDate,
         attendanceData
       }, config);

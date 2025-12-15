@@ -25,7 +25,7 @@ const PaymentSettingsManagement = () => {
       const token = localStorage.getItem('token');
       const config = { headers: { Authorization: `Bearer ${token}` } };
 
-      const response = await axios.get('http://localhost:5000/api/payments/settings', config);
+      const response = await axios.get('/api/payments/settings', config);
       setPaymentSettings(response.data);
     } catch (err) {
       console.log('No payment settings found');
@@ -38,7 +38,7 @@ const PaymentSettingsManagement = () => {
       const token = localStorage.getItem('token');
       const config = { headers: { Authorization: `Bearer ${token}` } };
 
-      await axios.post('http://localhost:5000/api/payments/settings', paymentSettings, config);
+      await axios.post('/api/payments/settings', paymentSettings, config);
       Swal.fire('Success', 'Payment settings updated successfully!', 'success');
       setShowPaymentSettingsForm(false);
       fetchPaymentSettings();
@@ -52,7 +52,7 @@ const PaymentSettingsManagement = () => {
       const token = localStorage.getItem('token');
       const config = { headers: { Authorization: `Bearer ${token}` } };
 
-      const response = await axios.get('http://localhost:5000/api/payments/pending', config);
+      const response = await axios.get('/api/payments/pending', config);
       setPendingPayments(response.data);
     } catch (err) {
       console.log('Failed to fetch pending payments');
@@ -65,7 +65,7 @@ const PaymentSettingsManagement = () => {
       const config = { headers: { Authorization: `Bearer ${token}` } };
 
       // Update payment status
-      await axios.put(`http://localhost:5000/api/payments/${paymentId}/status`, {
+      await axios.put(`/api/payments/${paymentId}/status`, {
         status,
         rejection_reason: rejectionReason
       }, config);
@@ -77,7 +77,7 @@ const PaymentSettingsManagement = () => {
         if (payment && payment.bill_month && payment.customer_id) {
           try {
             // Update bill status to paid
-            await axios.put(`http://localhost:5000/api/billing/customer/${payment.customer_id._id}/status`, {
+            await axios.put(`/api/billing/customer/${payment.customer_id._id}/status`, {
               bill_month: payment.bill_month,
               status: 'paid'
             }, config);

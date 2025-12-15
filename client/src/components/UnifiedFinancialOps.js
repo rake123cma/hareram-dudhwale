@@ -85,7 +85,7 @@ const UnifiedFinancialOps = () => {
     e.preventDefault();
     try {
       const token = localStorage.getItem('token');
-      await axios.post('http://localhost:5000/api/financial/payables-simple', payableForm, {
+      await axios.post('/api/financial/payables-simple', payableForm, {
         headers: { Authorization: `Bearer ${token}` }
       });
       Swal.fire('Success', 'Payable added successfully', 'success');
@@ -99,7 +99,7 @@ const UnifiedFinancialOps = () => {
     e.preventDefault();
     try {
       const token = localStorage.getItem('token');
-      await axios.post('http://localhost:5000/api/financial/receivables-simple', receivableForm, {
+      await axios.post('/api/financial/receivables-simple', receivableForm, {
         headers: { Authorization: `Bearer ${token}` }
       });
       Swal.fire('Success', 'Receivable added successfully', 'success');
@@ -113,7 +113,7 @@ const UnifiedFinancialOps = () => {
     e.preventDefault();
     try {
       const token = localStorage.getItem('token');
-      await axios.post('http://localhost:5000/api/financial/vendors', vendorForm, {
+      await axios.post('/api/financial/vendors', vendorForm, {
         headers: { Authorization: `Bearer ${token}` }
       });
       Swal.fire('Success', 'Vendor added successfully', 'success');
@@ -127,7 +127,7 @@ const UnifiedFinancialOps = () => {
     e.preventDefault();
     try {
       const token = localStorage.getItem('token');
-      await axios.post('http://localhost:5000/api/customers', customerForm, {
+      await axios.post('/api/customers', customerForm, {
         headers: { Authorization: `Bearer ${token}` }
       });
       Swal.fire('Success', 'Customer added successfully', 'success');
@@ -141,7 +141,7 @@ const UnifiedFinancialOps = () => {
     e.preventDefault();
     try {
       const token = localStorage.getItem('token');
-      await axios.post('http://localhost:5000/api/financial/loans', loanForm, {
+      await axios.post('/api/financial/loans', loanForm, {
         headers: { Authorization: `Bearer ${token}` }
       });
       Swal.fire('Success', 'Loan added successfully', 'success');
@@ -155,7 +155,7 @@ const UnifiedFinancialOps = () => {
     e.preventDefault();
     try {
       const token = localStorage.getItem('token');
-      await axios.post('http://localhost:5000/api/financial/income', incomeForm, {
+      await axios.post('/api/financial/income', incomeForm, {
         headers: { Authorization: `Bearer ${token}` }
       });
       Swal.fire('Success', 'Income recorded successfully', 'success');

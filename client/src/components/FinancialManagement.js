@@ -167,10 +167,10 @@ const FinancialManagement = () => {
         billsRes,
         expensesRes
       ] = await Promise.all([
-        axios.get('http://localhost:5000/api/sales', { headers }),
-        axios.get('http://localhost:5000/api/financial/payments', { headers }),
-        axios.get('http://localhost:5000/api/billing', { headers }),
-        axios.get('http://localhost:5000/api/expenses', { headers })
+        axios.get('/api/sales', { headers }),
+        axios.get('/api/financial/payments', { headers }),
+        axios.get('/api/billing', { headers }),
+        axios.get('/api/expenses', { headers })
       ]);
 
       // Calculate selected month income (using selectedMonth and selectedYear)
@@ -274,15 +274,15 @@ const FinancialManagement = () => {
         billsRes,
         expensesRes
       ] = await Promise.all([
-        axios.get('http://localhost:5000/api/financial/payables-simple', { headers }),
-        axios.get('http://localhost:5000/api/financial/receivables-simple', { headers }),
-        axios.get('http://localhost:5000/api/financial/bank-balance', { headers }),
-        axios.get('http://localhost:5000/api/financial/loans', { headers }),
-        axios.get('http://localhost:5000/api/financial/vendors', { headers }),
-        axios.get('http://localhost:5000/api/sales', { headers }),
-        axios.get('http://localhost:5000/api/payments', { headers }),
-        axios.get('http://localhost:5000/api/billing', { headers }),
-        axios.get('http://localhost:5000/api/expenses', { headers })
+        axios.get('/api/financial/payables-simple', { headers }),
+        axios.get('/api/financial/receivables-simple', { headers }),
+        axios.get('/api/financial/bank-balance', { headers }),
+        axios.get('/api/financial/loans', { headers }),
+        axios.get('/api/financial/vendors', { headers }),
+        axios.get('/api/sales', { headers }),
+        axios.get('/api/payments', { headers }),
+        axios.get('/api/billing', { headers }),
+        axios.get('/api/expenses', { headers })
       ]);
 
       setPayables(payablesRes.data);
@@ -391,7 +391,7 @@ const FinancialManagement = () => {
       if (!token) return;
 
       const headers = { Authorization: `Bearer ${token}` };
-      const response = await axios.get(`http://localhost:5000/api/reports/monthly-income?year=${reportYear}`, { headers });
+      const response = await axios.get(`/api/reports/monthly-income?year=${reportYear}`, { headers });
 
       setMonthlyIncomeReport(response.data.monthly_income || []);
     } catch (err) {
@@ -447,7 +447,7 @@ const FinancialManagement = () => {
       const token = localStorage.getItem('token');
       const data = { ...paymentForm, amount: parseFloat(paymentForm.amount) };
 
-      await axios.post('http://localhost:5000/api/financial/payments', data, {
+      await axios.post('/api/financial/payments', data, {
         headers: { Authorization: `Bearer ${token}` }
       });
 
@@ -481,7 +481,7 @@ const FinancialManagement = () => {
         category: 'customer'
       };
 
-      await axios.post('http://localhost:5000/api/financial/receivables-simple', receivableData, {
+      await axios.post('/api/financial/receivables-simple', receivableData, {
         headers: { Authorization: `Bearer ${token}` }
       });
 
@@ -529,13 +529,13 @@ const FinancialManagement = () => {
       console.log('User token:', token); // Debug log
 
       if (editingItem) {
-        const response = await axios.put(`http://localhost:5000/api/financial/vendors/${editingItem._id}`, data, {
+        const response = await axios.put(`/api/financial/vendors/${editingItem._id}`, data, {
           headers: { Authorization: `Bearer ${token}` }
         });
         console.log('Update response:', response); // Debug log
         Swal.fire('Success', 'Supplier updated successfully', 'success');
       } else {
-        const response = await axios.post('http://localhost:5000/api/financial/vendors', data, {
+        const response = await axios.post('/api/financial/vendors', data, {
           headers: { Authorization: `Bearer ${token}` }
         });
         console.log('Create response:', response); // Debug log
@@ -570,7 +570,7 @@ const FinancialManagement = () => {
         category: 'supplier'
       };
 
-      await axios.post('http://localhost:5000/api/financial/payables-simple', payableData, {
+      await axios.post('/api/financial/payables-simple', payableData, {
         headers: { Authorization: `Bearer ${token}` }
       });
 
@@ -725,12 +725,12 @@ const FinancialManagement = () => {
       const data = { ...payableForm, amount: parseFloat(payableForm.amount) };
 
       if (editingItem) {
-        await axios.put(`http://localhost:5000/api/financial/payables-simple/${editingItem._id}`, data, {
+        await axios.put(`/api/financial/payables-simple/${editingItem._id}`, data, {
           headers: { Authorization: `Bearer ${token}` }
         });
         Swal.fire('Success', 'Payable updated successfully', 'success');
       } else {
-        await axios.post('http://localhost:5000/api/financial/payables-simple', data, {
+        await axios.post('/api/financial/payables-simple', data, {
           headers: { Authorization: `Bearer ${token}` }
         });
         Swal.fire('Success', 'Payable added successfully', 'success');
@@ -752,12 +752,12 @@ const FinancialManagement = () => {
       const data = { ...receivableForm, amount: parseFloat(receivableForm.amount) };
 
       if (editingItem) {
-        await axios.put(`http://localhost:5000/api/financial/receivables-simple/${editingItem._id}`, data, {
+        await axios.put(`/api/financial/receivables-simple/${editingItem._id}`, data, {
           headers: { Authorization: `Bearer ${token}` }
         });
         Swal.fire('Success', 'Receivable updated successfully', 'success');
       } else {
-        await axios.post('http://localhost:5000/api/financial/receivables-simple', data, {
+        await axios.post('/api/financial/receivables-simple', data, {
           headers: { Authorization: `Bearer ${token}` }
         });
         Swal.fire('Success', 'Receivable added successfully', 'success');
@@ -778,7 +778,7 @@ const FinancialManagement = () => {
       const token = localStorage.getItem('token');
       const data = { ...transactionForm, amount: parseFloat(transactionForm.amount) };
 
-      await axios.post('http://localhost:5000/api/financial/transactions', data, {
+      await axios.post('/api/financial/transactions', data, {
         headers: { Authorization: `Bearer ${token}` }
       });
 
@@ -810,13 +810,13 @@ const FinancialManagement = () => {
       console.log('User token:', token); // Debug log
 
       if (editingItem) {
-        const response = await axios.put(`http://localhost:5000/api/financial/loans/${editingItem._id}`, data, {
+        const response = await axios.put(`/api/financial/loans/${editingItem._id}`, data, {
           headers: { Authorization: `Bearer ${token}` }
         });
         console.log('Update response:', response); // Debug log
         Swal.fire('Success', 'Loan updated successfully', 'success');
       } else {
-        const response = await axios.post('http://localhost:5000/api/financial/loans', data, {
+        const response = await axios.post('/api/financial/loans', data, {
           headers: { Authorization: `Bearer ${token}` }
         });
         console.log('Create response:', response); // Debug log
@@ -846,7 +846,7 @@ const FinancialManagement = () => {
 
       console.log('Submitting loan payment data:', data);
 
-      await axios.post('http://localhost:5000/api/financial/loan-payments', data, {
+      await axios.post('/api/financial/loan-payments', data, {
         headers: { Authorization: `Bearer ${token}` }
       });
 
@@ -908,7 +908,7 @@ const FinancialManagement = () => {
             throw new Error('Invalid type');
         }
 
-        await axios.delete(`http://localhost:5000/api/financial/${endpoint}`, {
+        await axios.delete(`/api/financial/${endpoint}`, {
           headers: { Authorization: `Bearer ${token}` }
         });
 
@@ -1880,7 +1880,7 @@ const FinancialManagement = () => {
                                     const token = localStorage.getItem('token');
 
                                     // Get all payables for this supplier
-                                    const allPayablesResponse = await axios.get('http://localhost:5000/api/financial/payables-simple', {
+                                    const allPayablesResponse = await axios.get('/api/financial/payables-simple', {
                                       headers: { Authorization: `Bearer ${token}` }
                                     });
 

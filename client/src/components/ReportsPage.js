@@ -18,7 +18,7 @@ const ReportsPage = () => {
       const token = localStorage.getItem('token');
       const config = { headers: { Authorization: `Bearer ${token}` } };
 
-      const response = await axios.get(`http://localhost:5000/api/reports/monthly-attendance?year=${selectedYear}&month=${selectedMonth}`, config);
+      const response = await axios.get(`/api/reports/monthly-attendance?year=${selectedYear}&month=${selectedMonth}`, config);
       setAttendanceData(response.data);
     } catch (err) {
       Swal.fire('Error', 'Failed to fetch attendance report', 'error');

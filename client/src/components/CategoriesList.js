@@ -26,7 +26,7 @@ const CategoriesList = () => {
 
   const fetchCategories = async () => {
     try {
-      const response = await axios.get('http://localhost:5000/api/categories');
+      const response = await axios.get('/api/categories');
       setCategories(response.data);
       setLoading(false);
     } catch (err) {
@@ -54,9 +54,9 @@ const CategoriesList = () => {
       const data = { ...formData, display_order: parseInt(formData.display_order) };
 
       if (editingCategory) {
-        await axios.put(`http://localhost:5000/api/categories/${editingCategory._id}`, data);
+        await axios.put(`/api/categories/${editingCategory._id}`, data);
       } else {
-        await axios.post('http://localhost:5000/api/categories', data);
+        await axios.post('/api/categories', data);
       }
 
       fetchCategories();
@@ -92,7 +92,7 @@ const CategoriesList = () => {
 
     if (result.isConfirmed) {
       try {
-        await axios.delete(`http://localhost:5000/api/categories/${id}`);
+        await axios.delete(`/api/categories/${id}`);
         fetchCategories();
         Swal.fire({
           icon: 'success',

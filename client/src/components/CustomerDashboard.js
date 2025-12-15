@@ -179,7 +179,7 @@ const CustomerDashboard = () => {
       if (!token) return;
 
       const config = { headers: { Authorization: `Bearer ${token}` } };
-      const response = await axios.get('http://localhost:5000/api/orders/my-orders', config);
+      const response = await axios.get('/api/orders/my-orders', config);
 
       setOrders(response.data.orders || []);
     } catch (err) {
@@ -201,9 +201,9 @@ const CustomerDashboard = () => {
       const config = { headers: { Authorization: `Bearer ${token}` } };
 
       const [profileRes, balanceRes, salesRes] = await Promise.all([
-        axios.get('http://localhost:5000/api/customers/my-profile', config),
-        axios.get('http://localhost:5000/api/customers/my-balance', config),
-        axios.get('http://localhost:5000/api/customers/my-sales', config)
+        axios.get('/api/customers/my-profile', config),
+        axios.get('/api/customers/my-balance', config),
+        axios.get('/api/customers/my-sales', config)
       ]);
 
       setProfile(profileRes.data);
@@ -334,7 +334,7 @@ const CustomerDashboard = () => {
       };
 
       const config = { headers: { Authorization: `Bearer ${token}` } };
-      const response = await axios.post('http://localhost:5000/api/orders', orderData, config);
+      const response = await axios.post('/api/orders', orderData, config);
 
       // Refresh orders list
       await fetchCustomerOrders();
@@ -371,7 +371,7 @@ const CustomerDashboard = () => {
 
   const fetchProducts = async () => {
     try {
-      const response = await axios.get('http://localhost:5000/api/products');
+      const response = await axios.get('/api/products');
       const activeProducts = response.data.filter(product => product.is_active);
       setProducts(activeProducts);
     } catch (err) {
@@ -381,7 +381,7 @@ const CustomerDashboard = () => {
 
   const fetchPaymentSettings = async () => {
     try {
-      const response = await axios.get('http://localhost:5000/api/payments/settings');
+      const response = await axios.get('/api/payments/settings');
       setPaymentSettings(response.data);
     } catch (err) {
     }
@@ -425,7 +425,7 @@ const CustomerDashboard = () => {
       const token = localStorage.getItem('token');
       const config = { headers: { Authorization: `Bearer ${token}` } };
 
-      await axios.post('http://localhost:5000/api/payments/submit', paymentData, config);
+      await axios.post('/api/payments/submit', paymentData, config);
       Swal.fire('Success', 'Payment submitted successfully! It will be reviewed by admin.', 'success');
       setShowPaymentForm(false);
       setPaymentData({
@@ -458,7 +458,7 @@ const CustomerDashboard = () => {
       const token = localStorage.getItem('token');
       const config = { headers: { Authorization: `Bearer ${token}` } };
 
-      const response = await axios.get('http://localhost:5000/api/payments/my-approved', config);
+      const response = await axios.get('/api/payments/my-approved', config);
       setApprovedPayments(response.data);
     } catch (err) {
       console.log('No approved payments found');
@@ -470,7 +470,7 @@ const CustomerDashboard = () => {
       const token = localStorage.getItem('token');
       const config = { headers: { Authorization: `Bearer ${token}` } };
 
-      const response = await axios.get('http://localhost:5000/api/reminders/my-reminders', config);
+      const response = await axios.get('/api/reminders/my-reminders', config);
       setReminders(response.data);
     } catch (err) {
       console.log('No reminders found');
@@ -482,7 +482,7 @@ const CustomerDashboard = () => {
       const token = localStorage.getItem('token');
       const config = { headers: { Authorization: `Bearer ${token}` } };
 
-      const response = await axios.get('http://localhost:5000/api/payments/my-pending', config);
+      const response = await axios.get('/api/payments/my-pending', config);
       setPendingPayments(response.data);
     } catch (err) {
       console.log('No pending payments found');
@@ -499,7 +499,7 @@ const CustomerDashboard = () => {
       }
 
       const config = { headers: { Authorization: `Bearer ${token}` } };
-      const response = await axios.get('http://localhost:5000/api/special-reservations/my-reservations', config);
+      const response = await axios.get('/api/special-reservations/my-reservations', config);
       setSpecialReservations(Array.isArray(response.data) ? response.data : []);
     } catch (err) {
       console.log('No special reservations found');
@@ -512,7 +512,7 @@ const CustomerDashboard = () => {
     if (!token) return; // Don't make request if not authenticated
 
     try {
-      const response = await fetch('http://localhost:5000/api/reviews/my-review', {
+      const response = await fetch('/api/reviews/my-review', {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -548,11 +548,11 @@ const CustomerDashboard = () => {
 
       if (myReview) {
         // Update existing review
-        await axios.put(`http://localhost:5000/api/reviews/${myReview._id}`, reviewData, config);
+        await axios.put(`/api/reviews/${myReview._id}`, reviewData, config);
         showAlert('Review updated successfully!', 'success');
       } else {
         // Submit new review
-        await axios.post('http://localhost:5000/api/reviews', reviewData, config);
+        await axios.post('/api/reviews', reviewData, config);
         showAlert('Review submitted successfully! It will be published after admin approval.', 'success');
       }
 
@@ -626,7 +626,7 @@ const CustomerDashboard = () => {
       const token = localStorage.getItem('token');
       const config = { headers: { Authorization: `Bearer ${token}` } };
 
-      const response = await axios.get('http://localhost:5000/api/billing/customer/' + profile._id, config);
+      const response = await axios.get('/api/billing/customer/' + profile._id, config);
       setBills(response.data);
 
       if (showSuccessMessage) {
@@ -656,7 +656,7 @@ const CustomerDashboard = () => {
       };
 
       console.log('Fetching bill with token:', token ? 'Token exists' : 'No token');
-      const response = await axios.get(`http://localhost:5000/api/billing/${billId}/pdf`, config);
+      const response = await axios.get(`/api/billing/${billId}/pdf`, config);
       setBillPreviewContent(response.data);
       setBillPreviewInvoice(invoiceNumber);
       setShowBillPreview(true);
@@ -700,7 +700,7 @@ const CustomerDashboard = () => {
       const token = localStorage.getItem('token');
       const config = { headers: { Authorization: `Bearer ${token}` } };
 
-      await axios.put(`http://localhost:5000/api/reminders/${reminderId}/read`, {}, config);
+      await axios.put(`/api/reminders/${reminderId}/read`, {}, config);
       // Remove from local state
       setReminders(reminders.filter(r => r._id !== reminderId));
     } catch (err) {
@@ -714,7 +714,7 @@ const CustomerDashboard = () => {
       const token = localStorage.getItem('token');
       const config = { headers: { Authorization: `Bearer ${token}` } };
 
-      await axios.put('http://localhost:5000/api/customers/my-profile', profileForm, config);
+      await axios.put('/api/customers/my-profile', profileForm, config);
       setProfile({ ...profile, ...profileForm });
       setEditingProfile(false);
       Swal.fire('Profile updated successfully!', '', 'success');
@@ -757,7 +757,7 @@ const CustomerDashboard = () => {
       const token = localStorage.getItem('token');
       const config = { headers: { Authorization: `Bearer ${token}` } };
 
-      await axios.put('http://localhost:5000/api/customers/change-password', passwordData, config);
+      await axios.put('/api/customers/change-password', passwordData, config);
       showAlert('Password changed successfully!', 'success');
       setShowPasswordChange(false);
       setPasswordData({
@@ -1551,7 +1551,7 @@ const CustomerDashboard = () => {
 
                           // Submit booking to backend
                           const token = localStorage.getItem('token');
-                          axios.post('http://localhost:5000/api/special-reservations', bookingData, {
+                          axios.post('/api/special-reservations', bookingData, {
                             headers: { Authorization: `Bearer ${token}` }
                           })
                           .then(() => {

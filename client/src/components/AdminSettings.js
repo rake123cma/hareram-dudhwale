@@ -28,7 +28,7 @@ const AdminSettings = () => {
       const token = localStorage.getItem('token');
       const config = { headers: { Authorization: `Bearer ${token}` } };
 
-      const response = await axios.get('http://localhost:5000/api/admin/settings', config);
+      const response = await axios.get('/api/admin/settings', config);
       setAdminSettings(response.data);
     } catch (err) {
       console.log('Failed to fetch admin settings');
@@ -37,7 +37,7 @@ const AdminSettings = () => {
 
   const fetchFarmImages = async () => {
     try {
-      const response = await axios.get('http://localhost:5000/api/admin/farm-images');
+      const response = await axios.get('/api/admin/farm-images');
       setFarmImages(response.data);
     } catch (err) {
       console.log('Failed to fetch farm images');
@@ -50,7 +50,7 @@ const AdminSettings = () => {
       const token = localStorage.getItem('token');
       const config = { headers: { Authorization: `Bearer ${token}` } };
 
-      await axios.put('http://localhost:5000/api/admin/settings', adminSettings, config);
+      await axios.put('/api/admin/settings', adminSettings, config);
       Swal.fire('Success', 'Settings updated successfully!', 'success');
       setShowSettingsForm(false);
       fetchAdminSettings(); // Refresh the displayed settings
@@ -82,7 +82,7 @@ const AdminSettings = () => {
         }
       };
 
-      await axios.post('http://localhost:5000/api/admin/farm-images', formData, config);
+      await axios.post('/api/admin/farm-images', formData, config);
       Swal.fire('Success', 'Image uploaded successfully!', 'success');
       setImageForm({ title: '', description: '', image: null });
       fetchFarmImages();
@@ -106,7 +106,7 @@ const AdminSettings = () => {
         const token = localStorage.getItem('token');
         const config = { headers: { Authorization: `Bearer ${token}` } };
 
-        await axios.delete(`http://localhost:5000/api/admin/farm-images/${imageId}`, config);
+        await axios.delete(`/api/admin/farm-images/${imageId}`, config);
         Swal.fire('Success', 'Image deleted successfully!', 'success');
         fetchFarmImages();
       } catch (err) {
@@ -173,7 +173,7 @@ const AdminSettings = () => {
                 {farmImages.slice(0, 4).map((image, index) => (
                   <div key={image._id} className="relative">
                     <img
-                      src={`http://localhost:5000${image.url}`}
+                      src={`${image.url}`}
                       alt={image.title || `Farm ${index + 1}`}
                       className="w-full h-24 object-cover rounded-lg border border-secondary-600"
                     />

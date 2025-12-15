@@ -119,8 +119,8 @@ describe('Register Component', () => {
     fireEvent.click(submitButton);
 
     await waitFor(() => {
-      expect(mockedAxios.get).toHaveBeenCalledWith('http://localhost:5000/api/customers?phone=1234567890');
-      expect(mockedAxios.post).toHaveBeenCalledWith('http://localhost:5000/api/auth/register', {
+      expect(mockedAxios.get).toHaveBeenCalledWith('/api/customers?phone=1234567890');
+      expect(mockedAxios.post).toHaveBeenCalledWith('/api/auth/register', {
         name: 'John Doe',
         phone: '1234567890',
         email: 'john@example.com',
@@ -155,7 +155,7 @@ describe('Register Component', () => {
     fireEvent.click(submitButton);
 
     await waitFor(() => {
-      expect(mockedAxios.get).toHaveBeenCalledWith('http://localhost:5000/api/customers?phone=1234567890');
+      expect(mockedAxios.get).toHaveBeenCalledWith('/api/customers?phone=1234567890');
       expect(alertMock).toHaveBeenCalledWith('This mobile number is already registered. Please login instead.');
       expect(mockNavigate).toHaveBeenCalledWith('/login');
       expect(mockedAxios.post).not.toHaveBeenCalled();

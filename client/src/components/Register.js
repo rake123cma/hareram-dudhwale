@@ -35,7 +35,7 @@ const Register = () => {
 
     try {
       // Check if phone number already exists in database
-      const existingCheck = await axios.get(`http://localhost:5000/api/customers?phone=${formData.phone}`);
+      const existingCheck = await axios.get(`/api/customers?phone=${formData.phone}`);
       if (existingCheck.data && existingCheck.data.length > 0) {
         const userChoice = window.confirm('This mobile number is already registered. Would you like to reset your password instead?');
         if (userChoice) {
@@ -47,7 +47,7 @@ const Register = () => {
         return;
       }
 
-      await axios.post('http://localhost:5000/api/auth/register', registrationData);
+      await axios.post('/api/auth/register', registrationData);
       alert('Registration successful! You can now login with your mobile number and password.');
       navigate('/login');
     } catch (err) {

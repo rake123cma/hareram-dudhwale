@@ -52,7 +52,7 @@ const AdminDashboard = () => {
       const config = { headers: { Authorization: `Bearer ${token}` } };
 
       // Fetch cows
-      const cowsRes = await axios.get('http://localhost:5000/api/cows', config);
+      const cowsRes = await axios.get('/api/cows', config);
       setCows(cowsRes.data);
 
       // Calculate stats
@@ -183,11 +183,11 @@ const AdminDashboard = () => {
 
       if (editingCow) {
         // Update existing livestock
-        await axios.put(`http://localhost:5000/api/cows/${editingCow._id}`, cowData, config);
+        await axios.put(`/api/cows/${editingCow._id}`, cowData, config);
         Swal.fire('Success', 'Cattle updated successfully!', 'success');
       } else {
         // Create new livestock
-        const response = await axios.post('http://localhost:5000/api/cows', cowData, config);
+        const response = await axios.post('/api/cows', cowData, config);
         console.log('Livestock created:', response.data);
         Swal.fire('Success', 'Cattle added successfully!', 'success');
       }
@@ -228,7 +228,7 @@ const AdminDashboard = () => {
         status: 'pregnant'
       };
 
-      await axios.put(`http://localhost:5000/api/cows/${crossingCow._id}`, updateData, config);
+      await axios.put(`/api/cows/${crossingCow._id}`, updateData, config);
 
       Swal.fire('Success', 'Crossing information updated successfully!', 'success');
       setShowCrossingForm(false);
@@ -288,7 +288,7 @@ const AdminDashboard = () => {
       const token = localStorage.getItem('token');
       const config = { headers: { Authorization: `Bearer ${token}` } };
 
-      await axios.post(`http://localhost:5000/api/cows/${selectedCow._id}/insemination`, data, config);
+      await axios.post(`/api/cows/${selectedCow._id}/insemination`, data, config);
       Swal.fire('सफलता', 'सेमेन रिकॉर्ड सफलतापूर्वक जोड़ा गया!', 'success');
       setShowInseminationForm(false);
       setSelectedCow(null);
@@ -305,7 +305,7 @@ const AdminDashboard = () => {
       const token = localStorage.getItem('token');
       const config = { headers: { Authorization: `Bearer ${token}` } };
 
-      await axios.post(`http://localhost:5000/api/cows/${selectedCow._id}/calving`, data, config);
+      await axios.post(`/api/cows/${selectedCow._id}/calving`, data, config);
       Swal.fire('सफलता', 'बच्चा देने का रिकॉर्ड सफलतापूर्वक जोड़ा गया!', 'success');
       fetchDashboardData();
     } catch (err) {
@@ -318,7 +318,7 @@ const AdminDashboard = () => {
       const token = localStorage.getItem('token');
       const config = { headers: { Authorization: `Bearer ${token}` } };
 
-      await axios.post(`http://localhost:5000/api/cows/${selectedCow._id}/deworming`, data, config);
+      await axios.post(`/api/cows/${selectedCow._id}/deworming`, data, config);
       Swal.fire('सफलता', 'डीवॉर्मिंग रिकॉर्ड सफलतापूर्वक जोड़ा गया!', 'success');
       fetchDashboardData();
     } catch (err) {
@@ -858,7 +858,7 @@ const AdminDashboard = () => {
       const token = localStorage.getItem('token');
       const config = { headers: { Authorization: `Bearer ${token}` } };
 
-      await axios.post('http://localhost:5000/api/milk-records', milkData, config);
+      await axios.post('/api/milk-records', milkData, config);
 
       Swal.fire('Success', 'Milk record added successfully!', 'success');
       setShowMilkForm(false);
@@ -885,7 +885,7 @@ const AdminDashboard = () => {
       const token = localStorage.getItem('token');
       const config = { headers: { Authorization: `Bearer ${token}` } };
 
-      const response = await axios.get('http://localhost:5000/api/milk-records', config);
+      const response = await axios.get('/api/milk-records', config);
       setMilkRecords(response.data);
     } catch (err) {
       console.log('Failed to fetch milk records');
@@ -1094,7 +1094,7 @@ const AdminDashboard = () => {
       const token = localStorage.getItem('token');
       const config = { headers: { Authorization: `Bearer ${token}` } };
 
-      await axios.post('http://localhost:5000/api/expenses', expenseData, config);
+      await axios.post('/api/expenses', expenseData, config);
 
       Swal.fire('Success', 'Expense record added successfully!', 'success');
       setShowExpenseForm(false);
@@ -1116,7 +1116,7 @@ const AdminDashboard = () => {
       const token = localStorage.getItem('token');
       const config = { headers: { Authorization: `Bearer ${token}` } };
 
-      const response = await axios.get('http://localhost:5000/api/expenses', config);
+      const response = await axios.get('/api/expenses', config);
       setExpenses(response.data);
     } catch (err) {
       console.log('Failed to fetch expenses');
@@ -1269,7 +1269,7 @@ const AdminDashboard = () => {
       const config = { headers: { Authorization: `Bearer ${token}` } };
 
       // Add sickness record to cow
-      await axios.put(`http://localhost:5000/api/cows/${sicknessData.cow_id}`, {
+      await axios.put(`/api/cows/${sicknessData.cow_id}`, {
         $push: {
           sickness_records: {
             date: new Date(sicknessData.date),
@@ -1284,7 +1284,7 @@ const AdminDashboard = () => {
 
       // Add expense record if there's a cost
       if (sicknessData.cost && parseFloat(sicknessData.cost) > 0) {
-        await axios.post('http://localhost:5000/api/expenses', {
+        await axios.post('/api/expenses', {
           date: sicknessData.date,
           category: 'medicine',
           amount: parseFloat(sicknessData.cost),
@@ -1462,7 +1462,7 @@ const AdminDashboard = () => {
         const token = localStorage.getItem('token');
         const config = { headers: { Authorization: `Bearer ${token}` } };
 
-        await axios.patch(`http://localhost:5000/api/cows/${cowId}/status`, {
+        await axios.patch(`/api/cows/${cowId}/status`, {
           status: 'active'
         }, config);
 
@@ -1486,7 +1486,7 @@ const AdminDashboard = () => {
       const calvingMonth = parseInt(calvingParts[1]) - 1; // JavaScript months are 0-based
       const calvingDay = parseInt(calvingParts[2]);
 
-      await axios.put(`http://localhost:5000/api/cows/${pregnancyData.cow_id}`, {
+      await axios.put(`/api/cows/${pregnancyData.cow_id}`, {
         pregnancy_status: true,
         expected_calving_date: new Date(calvingYear, calvingMonth, calvingDay),
         status: 'pregnant',
@@ -1512,7 +1512,7 @@ const AdminDashboard = () => {
       const token = localStorage.getItem('token');
       const config = { headers: { Authorization: `Bearer ${token}` } };
 
-      await axios.put(`http://localhost:5000/api/cows/${dryCowData.cow_id}`, {
+      await axios.put(`/api/cows/${dryCowData.cow_id}`, {
         status: 'dry',
         dry_start_date: new Date(),
         health_notes: dryCowData.reason
@@ -1723,7 +1723,7 @@ const AdminDashboard = () => {
                   const token = localStorage.getItem('token');
                   const config = { headers: { Authorization: `Bearer ${token}` } };
 
-                  await axios.patch(`http://localhost:5000/api/cows/${selectedCowForRecords}/pregnancy-confirm`, {
+                  await axios.patch(`/api/cows/${selectedCowForRecords}/pregnancy-confirm`, {
                     confirmed_date: new Date().toISOString().split('T')[0]
                   }, config);
 
@@ -1929,7 +1929,7 @@ const AdminDashboard = () => {
       const token = localStorage.getItem('token');
       const config = { headers: { Authorization: `Bearer ${token}` } };
 
-      const response = await axios.get('http://localhost:5000/api/payments/settings', config);
+      const response = await axios.get('/api/payments/settings', config);
       setPaymentSettings(response.data);
     } catch (err) {
       console.log('No payment settings found');
@@ -1942,7 +1942,7 @@ const AdminDashboard = () => {
       const token = localStorage.getItem('token');
       const config = { headers: { Authorization: `Bearer ${token}` } };
 
-      await axios.post('http://localhost:5000/api/payments/settings', paymentSettings, config);
+      await axios.post('/api/payments/settings', paymentSettings, config);
       Swal.fire('Success', 'Payment settings updated successfully!', 'success');
       setShowPaymentSettingsForm(false);
       fetchPaymentSettings();
@@ -1956,7 +1956,7 @@ const AdminDashboard = () => {
       const token = localStorage.getItem('token');
       const config = { headers: { Authorization: `Bearer ${token}` } };
 
-      const response = await axios.get('http://localhost:5000/api/payments/pending', config);
+      const response = await axios.get('/api/payments/pending', config);
       setPendingPayments(response.data);
     } catch (err) {
       console.log('Failed to fetch pending payments');
@@ -1968,7 +1968,7 @@ const AdminDashboard = () => {
       const token = localStorage.getItem('token');
       const config = { headers: { Authorization: `Bearer ${token}` } };
 
-      const response = await axios.get('http://localhost:5000/api/reviews', config);
+      const response = await axios.get('/api/reviews', config);
       setReviews(response.data);
     } catch (err) {
       console.log('Failed to fetch reviews');
@@ -1980,7 +1980,7 @@ const AdminDashboard = () => {
       const token = localStorage.getItem('token');
       const config = { headers: { Authorization: `Bearer ${token}` } };
 
-      await axios.put(`http://localhost:5000/api/reviews/${reviewId}/approve`, {
+      await axios.put(`/api/reviews/${reviewId}/approve`, {
         is_approved: isApproved,
         is_featured: isFeatured
       }, config);
@@ -2007,7 +2007,7 @@ const AdminDashboard = () => {
         const token = localStorage.getItem('token');
         const config = { headers: { Authorization: `Bearer ${token}` } };
 
-        await axios.delete(`http://localhost:5000/api/reviews/${reviewId}`, config);
+        await axios.delete(`/api/reviews/${reviewId}`, config);
         Swal.fire('Success', 'Review deleted successfully!', 'success');
         fetchReviews();
       } catch (err) {
@@ -2022,7 +2022,7 @@ const AdminDashboard = () => {
       const config = { headers: { Authorization: `Bearer ${token}` } };
 
       // Update payment status
-      await axios.put(`http://localhost:5000/api/payments/${paymentId}/status`, {
+      await axios.put(`/api/payments/${paymentId}/status`, {
         status,
         rejection_reason: rejectionReason
       }, config);
@@ -2034,7 +2034,7 @@ const AdminDashboard = () => {
         if (payment && payment.bill_month && payment.customer_id) {
           try {
             // Update bill status to paid
-            await axios.put(`http://localhost:5000/api/billing/customer/${payment.customer_id._id}/status`, {
+            await axios.put(`/api/billing/customer/${payment.customer_id._id}/status`, {
               bill_month: payment.bill_month,
               status: 'paid'
             }, config);

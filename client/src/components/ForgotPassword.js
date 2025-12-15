@@ -24,7 +24,7 @@ const ForgotPassword = () => {
     setLoading(true);
 
     try {
-      await axios.post('http://localhost:5000/api/auth/forgot-password', { mobile });
+      await axios.post('/api/auth/forgot-password', { mobile });
       alert('OTP sent to your mobile number');
       setStep(2);
     } catch (err) {
@@ -44,7 +44,7 @@ const ForgotPassword = () => {
     setLoading(true);
 
     try {
-      await axios.post('http://localhost:5000/api/auth/reset-password', {
+      await axios.post('/api/auth/reset-password', {
         mobile,
         otp,
         newPassword
