@@ -412,6 +412,8 @@ router.get('/google-test', (req, res) => {
     client_id: process.env.GOOGLE_CLIENT_ID ? 'present (' + process.env.GOOGLE_CLIENT_ID.substring(0, 20) + '...)' : 'missing',
     client_secret: process.env.GOOGLE_CLIENT_SECRET ? 'present (' + process.env.GOOGLE_CLIENT_SECRET.substring(0, 10) + '...)' : 'missing',
     callback_url: process.env.GOOGLE_CALLBACK_URL,
+    jwt_secret: process.env.JWT_SECRET ? 'present' : 'MISSING - THIS WILL CAUSE 500 ERROR',
+    jwt_refresh_secret: process.env.JWT_REFRESH_SECRET ? 'present' : 'MISSING - THIS WILL CAUSE 500 ERROR',
     current_time: new Date().toISOString(),
     troubleshooting: {
       'Issue': 'TokenError: Malformed auth code',
@@ -420,7 +422,8 @@ router.get('/google-test', (req, res) => {
         '1. Complete OAuth consent screen setup',
         '2. Add your email as test user if app is in testing mode',
         '3. Verify redirect URIs match exactly',
-        '4. Wait 2-3 minutes after changes'
+        '4. Wait 2-3 minutes after changes',
+        '5. Check JWT_SECRET and JWT_REFRESH_SECRET are set'
       ],
       'Console_URL': 'https://console.cloud.google.com/apis/credentials/consent',
       'Project': 'hareram-dudhwale'
