@@ -147,8 +147,8 @@ const Login = () => {
   const handleGoogleLogin = () => {
     setGoogleLoading(true);
     try {
-      // Redirect to backend OAuth endpoint
-      window.location.href = `${window.location.protocol}//${window.location.hostname}:5000/api/auth/google`;
+      // Redirect to backend OAuth endpoint (relative URL for production)
+      window.location.href = '/api/auth/google';
     } catch (error) {
       alert('Failed to initiate Google login. Please try again.');
       setGoogleLoading(false);
