@@ -78,6 +78,7 @@ passport.use(new GoogleStrategy({
           // New user, create customer and user accounts
           const customer = new Customer({
             name: profile.displayName || userEmail.split('@')[0],
+            phone: `oauth_${Date.now()}`, // Temporary phone for OAuth users since phone is required
             email: userEmail,
             category: 'General',
             customer_type: 'guest customer'
