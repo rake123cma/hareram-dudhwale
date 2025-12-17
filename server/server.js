@@ -31,7 +31,7 @@ app.use((req, res, next) => {
     res.setHeader('Content-Security-Policy',
       "default-src 'self'; " +
       "script-src 'self' 'unsafe-inline'; " +
-      "style-src 'self' 'unsafe-inline'; " +
+      "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://fonts.gstatic.com; " +
       "img-src 'self' data: https:; " +
       "font-src 'self' https://fonts.googleapis.com https://fonts.gstatic.com; " +
       "connect-src 'self' https://accounts.google.com https://www.googleapis.com https://oauth2.googleapis.com; " +
@@ -46,7 +46,7 @@ app.use((req, res, next) => {
     res.setHeader('Content-Security-Policy',
       "default-src 'self' http://localhost:* https://accounts.google.com https://www.googleapis.com; " +
       "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://accounts.google.com https://www.gstatic.com; " +
-      "style-src 'self' 'unsafe-inline' https://accounts.google.com https://www.gstatic.com; " +
+      "style-src 'self' 'unsafe-inline' https://accounts.google.com https://www.gstatic.com https://fonts.googleapis.com https://fonts.gstatic.com; " +
       "img-src 'self' data: https: http://localhost:*; " +
       "font-src 'self' https://fonts.gstatic.com; " +
       "connect-src 'self' https: http://localhost:* wss://localhost:* https://accounts.google.com https://www.googleapis.com https://oauth2.googleapis.com; " +
