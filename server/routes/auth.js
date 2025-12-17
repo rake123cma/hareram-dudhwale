@@ -480,7 +480,7 @@ router.get('/google/callback',
     // Handle OAuth errors
     if (req.query.error) {
       console.error('❌ OAuth error received:', req.query.error);
-      
+
       let errorMessage = 'Authentication failed';
       switch (req.query.error) {
         case 'access_denied':
@@ -498,8 +498,9 @@ router.get('/google/callback',
         default:
           errorMessage = `OAuth error: ${req.query.error}`;
       }
-      
-      return res.redirect(`http://localhost:3000/login?error=${encodeURIComponent(errorMessage)}`);
+
+      const frontendURL = process.env.FRONTEND_URL || 'https://hareram-dudhwale.onrender.com';
+      return res.redirect(`${frontendURL}/login?error=${encodeURIComponent(errorMessage)}`);
     }
     
     next();
@@ -521,7 +522,8 @@ router.get('/google/callback',
 
       if (!user) {
         console.error('❌ No user object found in Google OAuth callback');
-        return res.redirect('http://localhost:3000/login?error=no_user');
+        const frontendURL = process.env.FRONTEND_URL || 'https://hareram-dudhwale.onrender.com';
+        return res.redirect(`${frontendURL}/login?error=no_user`);
       }
 
       // Generate JWT token and refresh token
@@ -536,7 +538,7 @@ router.get('/google/callback',
       console.log('🔐 Tokens generated successfully');
 
       // Redirect to frontend with tokens
-      const frontendURL = process.env.FRONTEND_URL || 'http://localhost:3000';
+      const frontendURL = process.env.FRONTEND_URL || 'https://hareram-dudhwale.onrender.com';
       const redirectURL = `${frontendURL}/login?token=${token}&refreshToken=${refreshToken}&user=${encodeURIComponent(JSON.stringify({
         id: user._id,
         username: user.username,
@@ -548,7 +550,7 @@ router.get('/google/callback',
       res.redirect(redirectURL);
     } catch (err) {
       console.error('❌ Google OAuth callback error:', err);
-      
+
       // Handle specific OAuth errors
       if (err.message && err.message.includes('Malformed auth code')) {
         console.error('🚨 MALFORMED AUTH CODE ERROR:');
@@ -558,11 +560,13 @@ router.get('/google/callback',
         console.error('   3. Redirect URI mismatch in Google Console');
         console.error('   4. Client ID or Secret is incorrect');
         console.error('   5. OAuth flow was interrupted');
-        
-        return res.redirect('http://localhost:3000/login?error=oauth_config_issue&details=malformed_auth_code');
+
+        const frontendURL = process.env.FRONTEND_URL || 'https://hareram-dudhwale.onrender.com';
+        return res.redirect(`${frontendURL}/login?error=oauth_config_issue&details=malformed_auth_code`);
       }
-      
-      res.redirect('http://localhost:3000/login?error=oauth_callback_failed');
+
+      const frontendURL = process.env.FRONTEND_URL || 'https://hareram-dudhwale.onrender.com';
+      res.redirect(`${frontendURL}/login?error=oauth_callback_failed`);
     }
   }
 );
@@ -574,8 +578,8 @@ router.get('/google/failure', (req, res) => {
     query: req.query,
     headers: req.headers
   });
-  
-  const frontendURL = process.env.FRONTEND_URL || 'http://localhost:3000';
+
+  const frontendURL = process.env.FRONTEND_URL || 'https://hareram-dudhwale.onrender.com';
   res.redirect(`${frontendURL}/login?error=google_auth_failed`);
 });
 
