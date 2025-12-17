@@ -11,36 +11,90 @@ const Login = () => {
   const [password, setPassword] = useState('');
   const [username, setUsername] = useState('');
   const [adminPassword, setAdminPassword] = useState('');
+  const [email, setEmail] = useState('');
+  const [emailPassword, setEmailPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
+  const [authMethod, setAuthMethod] = useState('phone'); // 'phone', 'email', 'google'
   const navigate = useNavigate();
 
   useEffect(() => {
     setLoginType(isAdminLogin ? 'admin' : 'customer');
   }, [isAdminLogin]);
 
+  // Handle Google OAuth callback
+  useEffect(() => {
+    const token = searchParams.get('token');
+    const refreshToken = searchParams.get('refreshToken');
+    const user = searchParams.get('user');
+    const error = searchParams.get('error');
+
+    if (token && refreshToken && user) {
+      // Successful OAuth login
+      setLoading(true);
+      try {
+        localStorage.setItem('token', token);
+        localStorage.setItem('refreshToken', refreshToken);
+        const userData = JSON.parse(decodeURIComponent(user));
+        if (userData.role === 'admin') {
+          navigate('/admin');
+        } else {
+          navigate('/customer');
+        }
+        // Clean up URL
+        window.history.replaceState({}, document.title, window.location.pathname);
+      } catch (err) {
+        alert('Google login failed. Please try again.');
+      } finally {
+        setLoading(false);
+      }
+    } else if (error) {
+      // OAuth error
+      alert('Google login failed. Please try again.');
+      // Clean up URL
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }, [searchParams, navigate]);
+
   const handleCustomerSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
 
     try {
-      const res = await axios.post('/api/auth/login', { username: mobile, password }, { timeout: 5000 });
+      let res;
+
+      if (authMethod === 'phone') {
+        // Phone/password login
+        res = await axios.post('/api/auth/login', { username: mobile, password }, { timeout: 5000 });
+      } else {
+        // Email/password login
+        res = await axios.post('/api/auth/email-login', { email, password: emailPassword }, { timeout: 5000 });
+      }
+
       try {
         localStorage.setItem('token', res.data.token);
+        if (res.data.refreshToken) {
+          localStorage.setItem('refreshToken', res.data.refreshToken);
+        }
       } catch (storageErr) {
         alert('Login successful, but failed to save authentication data. Please check browser storage permissions.');
         return;
       }
       navigate('/customer');
     } catch (err) {
-      // Silently handle expected authentication errors
+      // Handle authentication errors
       if (err.response?.status === 401) {
-        // Check if mobile is registered by trying to send OTP (silently)
-        try {
-          await axios.post('/api/auth/send-otp', { mobile }, { timeout: 3000 });
-          alert('Invalid password. Please check your password.');
-        } catch (otpErr) {
-          alert('This mobile number is not registered. Redirecting to registration page.');
-          navigate('/register', { state: { mobile } });
+        if (authMethod === 'phone') {
+          // Check if mobile is registered by trying to send OTP (silently)
+          try {
+            await axios.post('/api/auth/send-otp', { mobile }, { timeout: 3000 });
+            alert('Invalid password. Please check your password.');
+          } catch (otpErr) {
+            alert('This mobile number is not registered. Redirecting to registration page.');
+            navigate('/register', { state: { mobile } });
+          }
+        } else {
+          alert('Invalid email or password. Please check your credentials.');
         }
       } else {
         alert('Login failed. Please try again later.');
@@ -67,17 +121,11 @@ const Login = () => {
         navigate('/customer');
       }
     } catch (err) {
-      // Silently handle authentication errors and fallback to testing mode
-      if (username && adminPassword) {
-        try {
-          localStorage.setItem('token', 'test-token-admin');
-        } catch (storageErr) {
-          alert('Test login successful, but failed to save authentication data.');
-          return;
-        }
-        navigate('/admin');
+      // Handle authentication errors
+      if (err.response?.status === 401) {
+        alert('Invalid username or password. Please check your credentials.');
       } else {
-        alert('Please enter both username and password.');
+        alert('Login failed. Please try again later.');
       }
     } finally {
       setLoading(false);
@@ -94,6 +142,17 @@ const Login = () => {
   const handleLoginTypeChange = (type) => {
     setLoginType(type);
     resetForm();
+  };
+
+  const handleGoogleLogin = () => {
+    setGoogleLoading(true);
+    try {
+      // Redirect to backend OAuth endpoint
+      window.location.href = `${window.location.protocol}//${window.location.hostname}:5000/api/auth/google`;
+    } catch (error) {
+      alert('Failed to initiate Google login. Please try again.');
+      setGoogleLoading(false);
+    }
   };
 
   return (
@@ -117,8 +176,6 @@ const Login = () => {
           </p>
         </div>
 
-        {/* No need for selector when only customer login or admin login */}
-
         {/* Login Form Card */}
         <div className="bg-white/90 backdrop-blur-lg p-6 md:p-10 rounded-2xl shadow-2xl w-full max-w-md relative overflow-hidden border border-white/20">
           {/* Decorative background */}
@@ -130,37 +187,99 @@ const Login = () => {
                 <h3 className="m-0 mb-2.5 text-gray-800 text-xl md:text-2xl flex items-center gap-2.5">
                   🥛 Customer Login
                 </h3>
+                {/* Auth Method Selector */}
+                <div className="flex mb-4 bg-gray-100 rounded-lg p-1">
+                  <button
+                    type="button"
+                    className={`flex-1 py-2 px-3 rounded-md text-sm font-medium transition-all duration-200 ${
+                      authMethod === 'phone'
+                        ? 'bg-green-500 text-white shadow-sm'
+                        : 'text-gray-600 hover:text-gray-800'
+                    }`}
+                    onClick={() => setAuthMethod('phone')}
+                  >
+                    📱 Phone
+                  </button>
+                  <button
+                    type="button"
+                    className={`flex-1 py-2 px-3 rounded-md text-sm font-medium transition-all duration-200 ${
+                      authMethod === 'email'
+                        ? 'bg-green-500 text-white shadow-sm'
+                        : 'text-gray-600 hover:text-gray-800'
+                    }`}
+                    onClick={() => setAuthMethod('email')}
+                  >
+                    ✉️ Email
+                  </button>
+                </div>
+
                 <p className="text-gray-600 mb-5 md:mb-6 text-sm">
-                  Enter your mobile number and password to login
+                  {authMethod === 'phone'
+                    ? 'Enter your mobile number and password to login'
+                    : 'Enter your email and password to login'
+                  }
                 </p>
-                <div className="relative mb-4">
-                  <FaPhone className="absolute left-3 md:left-4 top-1/2 transform -translate-y-1/2 text-gray-400 text-base md:text-lg" />
-                  <input
-                    className="w-full pl-10 md:pl-12 p-3 md:p-4 border-2 border-gray-200 rounded-xl text-base transition-colors duration-300 focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-200"
-                    type="tel"
-                    placeholder="Enter 10-digit mobile number"
-                    value={mobile}
-                    onChange={(e) => setMobile(e.target.value)}
-                    pattern="[0-9]{10}"
-                    maxLength="10"
-                    autoComplete="username"
-                    required
-                    disabled={loading}
-                  />
-                </div>
-                <div className="relative mb-5">
-                  <FaLock className="absolute left-3 md:left-4 top-1/2 transform -translate-y-1/2 text-gray-400 text-base md:text-lg" />
-                  <input
-                    className="w-full pl-10 md:pl-12 p-3 md:p-4 border-2 border-gray-200 rounded-xl text-base transition-colors duration-300 focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-200"
-                    type="password"
-                    placeholder="Enter your password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    autoComplete="current-password"
-                    required
-                    disabled={loading}
-                  />
-                </div>
+                {authMethod === 'phone' ? (
+                  <>
+                    <div className="relative mb-4">
+                      <FaPhone className="absolute left-3 md:left-4 top-1/2 transform -translate-y-1/2 text-gray-400 text-base md:text-lg" />
+                      <input
+                        className="w-full pl-10 md:pl-12 p-3 md:p-4 border-2 border-gray-200 rounded-xl text-base transition-colors duration-300 focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-200"
+                        type="tel"
+                        placeholder="Enter 10-digit mobile number"
+                        value={mobile}
+                        onChange={(e) => setMobile(e.target.value)}
+                        pattern="[0-9]{10}"
+                        maxLength="10"
+                        autoComplete="username"
+                        required
+                        disabled={loading}
+                      />
+                    </div>
+                    <div className="relative mb-5">
+                      <FaLock className="absolute left-3 md:left-4 top-1/2 transform -translate-y-1/2 text-gray-400 text-base md:text-lg" />
+                      <input
+                        className="w-full pl-10 md:pl-12 p-3 md:p-4 border-2 border-gray-200 rounded-xl text-base transition-colors duration-300 focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-200"
+                        type="password"
+                        placeholder="Enter your password"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        autoComplete="current-password"
+                        required
+                        disabled={loading}
+                      />
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="relative mb-4">
+                      <FaUser className="absolute left-3 md:left-4 top-1/2 transform -translate-y-1/2 text-gray-400 text-base md:text-lg" />
+                      <input
+                        className="w-full pl-10 md:pl-12 p-3 md:p-4 border-2 border-gray-200 rounded-xl text-base transition-colors duration-300 focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-200"
+                        type="email"
+                        placeholder="Enter your email address"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        autoComplete="username"
+                        required
+                        disabled={loading}
+                      />
+                    </div>
+                    <div className="relative mb-5">
+                      <FaLock className="absolute left-3 md:left-4 top-1/2 transform -translate-y-1/2 text-gray-400 text-base md:text-lg" />
+                      <input
+                        className="w-full pl-10 md:pl-12 p-3 md:p-4 border-2 border-gray-200 rounded-xl text-base transition-colors duration-300 focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-200"
+                        type="password"
+                        placeholder="Enter your password"
+                        value={emailPassword}
+                        onChange={(e) => setEmailPassword(e.target.value)}
+                        autoComplete="current-password"
+                        required
+                        disabled={loading}
+                      />
+                    </div>
+                  </>
+                )}
                 <button
                   className="w-full p-3 md:p-4 bg-gradient-to-r from-green-500 to-green-600 text-white border-none rounded-xl cursor-pointer text-base font-semibold transition-all duration-300 hover:from-green-600 hover:to-green-700 hover:scale-105 mb-4 shadow-lg"
                   type="submit"
@@ -168,6 +287,33 @@ const Login = () => {
                 >
                   {loading ? '🔐 Logging in...' : '🚀 Login'}
                 </button>
+
+                {/* Google Login Button */}
+                <div className="mb-4">
+                  <div className="relative">
+                    <div className="absolute inset-0 flex items-center">
+                      <div className="w-full border-t border-gray-300"></div>
+                    </div>
+                    <div className="relative flex justify-center text-sm">
+                      <span className="px-2 bg-white text-gray-500">Or</span>
+                    </div>
+                  </div>
+                  <button
+                    className="w-full mt-4 p-3 md:p-4 bg-white border-2 border-gray-300 text-gray-700 rounded-xl cursor-pointer text-base font-semibold transition-all duration-300 hover:bg-gray-50 hover:shadow-md flex items-center justify-center gap-3"
+                    type="button"
+                    onClick={handleGoogleLogin}
+                    disabled={googleLoading}
+                  >
+                    <svg className="w-5 h-5" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+                      <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+                      <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+                      <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+                    </svg>
+                    {googleLoading ? '🔄 Signing in with Google...' : 'Continue with Google'}
+                  </button>
+                </div>
+
                 <p className="text-center mt-4">
                   <Link to="/forgot-password" className="text-green-600 hover:text-green-800 hover:underline text-sm transition-colors duration-300">Forgot Password?</Link>
                 </p>
@@ -177,7 +323,7 @@ const Login = () => {
             <div>
               <form onSubmit={handleAdminSubmit}>
                 <h3 className="m-0 mb-2.5 text-gray-800 text-xl md:text-2xl flex items-center gap-2.5">
-                  �️ Admin Login
+                  👨‍💼 Admin Login
                 </h3>
                 <p className="text-gray-600 mb-5 md:mb-6 text-sm">
                   Enter your admin credentials to access the dashboard

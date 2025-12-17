@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import Swal from 'sweetalert2';
-import { FaPlus, FaEye, FaEdit, FaTrash, FaRupeeSign, FaChartLine, FaUsers, FaFileInvoice, FaShoppingCart, FaUser, FaTimesCircle, FaWallet, FaCheck, FaBox, FaCalendarCheck, FaStar, FaSyringe, FaBaby, FaPills } from 'react-icons/fa';
+import { FaPlus, FaEye, FaEdit, FaTrash, FaRupeeSign, FaChartLine, FaUsers, FaFileInvoice, FaShoppingCart, FaUser, FaTimesCircle, FaWallet, FaCheck, FaBox, FaCalendarCheck, FaStar, FaSyringe, FaBaby, FaPills, FaChevronRight, FaChevronDown, FaBars } from 'react-icons/fa';
 import { GiMilkCarton } from 'react-icons/gi';
 import ProductsList from './ProductsList';
 import SpecialReservationsManagement from './SpecialReservationsManagement';
@@ -11,6 +11,8 @@ import DewormingForm from './DewormingForm';
 
 const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState('overview');
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [cattleMenuOpen, setCattleMenuOpen] = useState(true);
   const [cows, setCows] = useState([]);
   const [stats, setStats] = useState({
     totalCattle: 0,
@@ -2989,52 +2991,155 @@ const AdminDashboard = () => {
 
 
   return (
-    <div className="min-h-screen bg-primary-900 p-6">
-      <div className="max-w-7xl mx-auto">
-        <div className="bg-primary-700 rounded-lg p-6 mb-6 border border-secondary-700">
-          <h2 className="bg-gradient-to-r from-accent-blue to-accent-green bg-clip-text text-transparent mb-1 text-3xl">Hareram DudhWale - Admin Panel</h2>
-          <p className="text-secondary-300 mb-0 text-base">Milk Business Management System</p>
+    <div className="min-h-screen bg-primary-900 flex">
+      {/* Sidebar */}
+      <div className={`${sidebarOpen ? 'w-80' : 'w-16'} bg-primary-800 border-r border-secondary-700 transition-all duration-300 overflow-hidden`}>
+        <div className="p-4">
+          <div className="flex items-center justify-between mb-6">
+            <h3 className={`${sidebarOpen ? 'block' : 'hidden'} bg-gradient-to-r from-accent-blue to-accent-green bg-clip-text text-transparent text-lg font-semibold`}>
+              Milk Business
+            </h3>
+            <button
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+              className="p-2 hover:bg-primary-700 rounded-lg transition-colors duration-200"
+            >
+              <FaBars className="text-white text-lg" />
+            </button>
+          </div>
+
+          {/* Navigation Menu */}
+          <div className="space-y-2">
+            {/* Cattle Management Section */}
+            <div>
+              <div
+                className={`${sidebarOpen ? '' : 'justify-center'} flex items-center p-3 hover:bg-primary-700 rounded-lg cursor-pointer transition-colors duration-200 ${cattleMenuOpen ? 'bg-primary-700' : ''}`}
+                onClick={() => setCattleMenuOpen(!cattleMenuOpen)}
+              >
+                {sidebarOpen ? (
+                  cattleMenuOpen ? (
+                    <FaChevronDown className="text-accent-blue text-sm mr-3" />
+                  ) : (
+                    <FaChevronRight className="text-accent-blue text-sm mr-3" />
+                  )
+                ) : null}
+                <FaUser className="text-accent-blue text-lg" />
+                {sidebarOpen && (
+                  <span className="text-white font-medium ml-3">Cattle Management</span>
+                )}
+              </div>
+
+              {/* Submenu Items */}
+              <div className={`${cattleMenuOpen ? 'block' : 'hidden'} ml-6 space-y-1`}>
+                <div
+                  className={`flex items-center p-3 hover:bg-primary-700 rounded-lg cursor-pointer transition-colors duration-200 ${
+                    activeTab === 'overview' ? 'bg-accent-blue/20 border-r-2 border-accent-blue' : ''
+                  }`}
+                  onClick={() => setActiveTab('overview')}
+                >
+                  <FaChartLine className="text-accent-green text-sm" />
+                  {sidebarOpen && (
+                    <span className="text-white ml-3 text-sm">अवलोकन</span>
+                  )}
+                </div>
+
+                <div
+                  className={`flex items-center p-3 hover:bg-primary-700 rounded-lg cursor-pointer transition-colors duration-200 ${
+                    activeTab === 'cows' ? 'bg-accent-blue/20 border-r-2 border-accent-blue' : ''
+                  }`}
+                  onClick={() => setActiveTab('cows')}
+                >
+                  <FaUser className="text-accent-green text-sm" />
+                  {sidebarOpen && (
+                    <span className="text-white ml-3 text-sm">पशुधन</span>
+                  )}
+                </div>
+
+                <div
+                  className={`flex items-center p-3 hover:bg-primary-700 rounded-lg cursor-pointer transition-colors duration-200 ${
+                    activeTab === 'payments' ? 'bg-accent-blue/20 border-r-2 border-accent-blue' : ''
+                  }`}
+                  onClick={() => setActiveTab('payments')}
+                >
+                  <FaWallet className="text-accent-green text-sm" />
+                  {sidebarOpen && (
+                    <span className="text-white ml-3 text-sm">पेमेंट</span>
+                  )}
+                </div>
+
+                <div
+                  className={`flex items-center p-3 hover:bg-primary-700 rounded-lg cursor-pointer transition-colors duration-200 ${
+                    activeTab === 'reviews' ? 'bg-accent-blue/20 border-r-2 border-accent-blue' : ''
+                  }`}
+                  onClick={() => setActiveTab('reviews')}
+                >
+                  <FaStar className="text-accent-green text-sm" />
+                  {sidebarOpen && (
+                    <span className="text-white ml-3 text-sm">रिव्यू</span>
+                  )}
+                </div>
+
+                <div
+                  className={`flex items-center p-3 hover:bg-primary-700 rounded-lg cursor-pointer transition-colors duration-200 ${
+                    activeTab === 'records' ? 'bg-accent-blue/20 border-r-2 border-accent-blue' : ''
+                  }`}
+                  onClick={() => setActiveTab('records')}
+                >
+                  <FaEdit className="text-accent-green text-sm" />
+                  {sidebarOpen && (
+                    <span className="text-white ml-3 text-sm">रेकॉर्ड अपडेट</span>
+                  )}
+                </div>
+
+                <div
+                  className={`flex items-center p-3 hover:bg-primary-700 rounded-lg cursor-pointer transition-colors duration-200 ${
+                    activeTab === 'reports' ? 'bg-accent-blue/20 border-r-2 border-accent-blue' : ''
+                  }`}
+                  onClick={() => setActiveTab('reports')}
+                >
+                  <FaChartLine className="text-accent-green text-sm" />
+                  {sidebarOpen && (
+                    <span className="text-white ml-3 text-sm">रिपोर्ट</span>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
-
-        <div className="flex mb-6 border-b border-secondary-700">
-           <div className={`px-6 py-3 cursor-pointer text-secondary-500 border-b-2 border-transparent transition-all duration-300 hover:text-white ${activeTab === 'overview' ? 'text-accent-blue border-accent-blue' : ''}`} onClick={() => setActiveTab('overview')}>
-             अवलोकन
-           </div>
-           <div className={`px-6 py-3 cursor-pointer text-secondary-500 border-b-2 border-transparent transition-all duration-300 hover:text-white ${activeTab === 'cows' ? 'text-accent-blue border-accent-blue' : ''}`} onClick={() => setActiveTab('cows')}>
-             पशुधन
-           </div>
-           <div className={`px-6 py-3 cursor-pointer text-secondary-500 border-b-2 border-transparent transition-all duration-300 hover:text-white ${activeTab === 'payments' ? 'text-accent-blue border-accent-blue' : ''}`} onClick={() => setActiveTab('payments')}>
-             पेमेंट
-           </div>
-           <div className={`px-6 py-3 cursor-pointer text-secondary-500 border-b-2 border-transparent transition-all duration-300 hover:text-white ${activeTab === 'records' ? 'text-accent-blue border-accent-blue' : ''}`} onClick={() => setActiveTab('records')}>
-             रेकॉर्ड अपडेट
-           </div>
-           <div className={`px-6 py-3 cursor-pointer text-secondary-500 border-b-2 border-transparent transition-all duration-300 hover:text-white ${activeTab === 'reports' ? 'text-accent-blue border-accent-blue' : ''}`} onClick={() => setActiveTab('reports')}>
-             रिपोर्ट
-           </div>
-
-         </div>
-
-        <div className="space-y-6">
-           {activeTab === 'overview' && renderOverview()}
-           {activeTab === 'cows' && renderCows()}
-           {activeTab === 'payments' && renderPayments()}
-           {activeTab === 'records' && renderRecords()}
-           {activeTab === 'reports' && renderReports()}
-         </div>
-
-        {showCowForm && renderCowForm()}
-        {showCrossingForm && renderCrossingForm()}
-        {showInseminationForm && <InseminationForm cow={selectedCow} onClose={() => setShowInseminationForm(false)} onSubmit={handleInseminationSubmit} />}
-        {showCalvingForm && <CalvingForm cow={selectedCow} onClose={() => setShowCalvingForm(false)} onSubmit={handleCalvingSubmit} />}
-        {showDewormingForm && <DewormingForm cow={selectedCow} onClose={() => setShowDewormingForm(false)} onSubmit={handleDewormingSubmit} />}
-        {showMilkForm && renderMilkForm()}
-        {showExpenseForm && renderExpenseForm()}
-        {showSicknessForm && renderSicknessForm()}
-        {showPregnancyForm && renderPregnancyForm()}
-        {showDryCowForm && renderDryCowForm()}
-        {showPaymentSettingsForm && renderPaymentSettingsForm()}
       </div>
+
+      {/* Main Content */}
+      <div className="flex-1 bg-primary-900">
+        <div className="max-w-7xl mx-auto p-6">
+          {/* Header */}
+          <div className="bg-primary-700 rounded-lg p-6 mb-6 border border-secondary-700">
+            <h2 className="bg-gradient-to-r from-accent-blue to-accent-green bg-clip-text text-transparent mb-1 text-3xl">Hareram DudhWale - Admin Panel</h2>
+            <p className="text-secondary-300 mb-0 text-base">Milk Business Management System</p>
+          </div>
+
+          {/* Content Area */}
+          <div className="space-y-6">
+            {activeTab === 'overview' && renderOverview()}
+            {activeTab === 'cows' && renderCows()}
+            {activeTab === 'payments' && renderPayments()}
+            {activeTab === 'reviews' && renderReviews()}
+            {activeTab === 'records' && renderRecords()}
+            {activeTab === 'reports' && renderReports()}
+          </div>
+        </div>
+      </div>
+
+      {/* Modals remain the same */}
+      {showCowForm && renderCowForm()}
+      {showCrossingForm && renderCrossingForm()}
+      {showInseminationForm && <InseminationForm cow={selectedCow} onClose={() => setShowInseminationForm(false)} onSubmit={handleInseminationSubmit} />}
+      {showCalvingForm && <CalvingForm cow={selectedCow} onClose={() => setShowCalvingForm(false)} onSubmit={handleCalvingSubmit} />}
+      {showDewormingForm && <DewormingForm cow={selectedCow} onClose={() => setShowDewormingForm(false)} onSubmit={handleDewormingSubmit} />}
+      {showMilkForm && renderMilkForm()}
+      {showExpenseForm && renderExpenseForm()}
+      {showSicknessForm && renderSicknessForm()}
+      {showPregnancyForm && renderPregnancyForm()}
+      {showDryCowForm && renderDryCowForm()}
+      {showPaymentSettingsForm && renderPaymentSettingsForm()}
     </div>
   );
 };

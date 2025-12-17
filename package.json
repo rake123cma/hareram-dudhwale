@@ -4,11 +4,15 @@
   "description": "Backend for Hareram Dudhwale milk business application",
   "main": "server.js",
   "scripts": {
-    "start": "node server/server.js",
-    "dev": "nodemon server/server.js",
+    "start": "NODE_ENV=production node server/server.js",
+    "dev": "NODE_ENV=development nodemon server/server.js",
     "build": "echo 'Installing backend dependencies...' && npm install && echo 'Installing frontend dependencies...' && cd client && npm install && echo 'Building React app...' && npm run build",
-    "build-production": "npm run build && npm start",
-    "dev-full": "npm run build && npm run dev"
+    "build-production": "npm run build",
+    "start-production": "NODE_ENV=production node server/server.js",
+    "dev-full": "npm run build && npm run dev",
+    "production": "npm run build-production && npm run start-production",
+    "lint": "echo 'No linting configured'",
+    "test": "echo 'No tests configured'"
   },
   "keywords": [
     "milk",
@@ -26,6 +30,8 @@
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^7.5.0",
     "multer": "^1.4.5-lts.1",
+    "passport": "^0.7.0",
+    "passport-google-oauth20": "^2.0.0",
     "pdfkit": "^0.13.0",
     "sqlite3": "^5.1.7"
   },

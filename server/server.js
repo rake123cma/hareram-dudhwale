@@ -4,6 +4,7 @@ const cors = require('cors');
 const dotenv = require('dotenv');
 const multer = require('multer');
 const path = require('path');
+const passport = require('passport');
 const { sanitizeInput } = require('./middleware/validation');
 const { requestLogger, logSecurityEvent } = require('./middleware/logger');
 const { csrfProtection, addCSRFToken } = require('./middleware/csrf');
@@ -23,6 +24,38 @@ app.use((req, res, next) => {
   res.setHeader('X-XSS-Protection', '1; mode=block');
   res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+
+  // Content Security Policy - Environment specific
+  if (process.env.NODE_ENV === 'production') {
+    // Production CSP - Secure and restrictive
+    res.setHeader('Content-Security-Policy',
+      "default-src 'self'; " +
+      "script-src 'self' 'unsafe-inline'; " +
+      "style-src 'self' 'unsafe-inline'; " +
+      "img-src 'self' data: https:; " +
+      "font-src 'self' https://fonts.googleapis.com https://fonts.gstatic.com; " +
+      "connect-src 'self' https://accounts.google.com https://www.googleapis.com https://oauth2.googleapis.com; " +
+      "frame-src https://accounts.google.com; " +
+      "object-src 'none'; " +
+      "base-uri 'self'; " +
+      "form-action 'self' https://accounts.google.com; " +
+      "upgrade-insecure-requests;"
+    );
+  } else {
+    // Development CSP - More permissive for development tools
+    res.setHeader('Content-Security-Policy',
+      "default-src 'self' http://localhost:* https://accounts.google.com https://www.googleapis.com; " +
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://accounts.google.com https://www.gstatic.com; " +
+      "style-src 'self' 'unsafe-inline' https://accounts.google.com https://www.gstatic.com; " +
+      "img-src 'self' data: https: http://localhost:*; " +
+      "font-src 'self' https://fonts.gstatic.com; " +
+      "connect-src 'self' https: http://localhost:* wss://localhost:* https://accounts.google.com https://www.googleapis.com https://oauth2.googleapis.com; " +
+      "frame-src 'self' https://accounts.google.com; " +
+      "object-src 'none'; " +
+      "base-uri 'self'; " +
+      "form-action 'self' https://accounts.google.com;"
+    );
+  }
 
   // CORS configuration
   res.setHeader('Access-Control-Allow-Origin', process.env.CORS_ORIGIN || '*');
@@ -70,6 +103,12 @@ app.use(requestLogger);
 app.use(sanitizeInput);
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ limit: '10mb', extended: true }));
+
+// Passport configuration
+require('./config/passport');
+
+// Passport middleware
+app.use(passport.initialize());
 
 // CSRF protection for authenticated routes (temporarily disabled for testing)
 // app.use('/api', addCSRFToken);

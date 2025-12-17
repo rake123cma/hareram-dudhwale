@@ -56,19 +56,21 @@ const requireAdmin = async (req, res, next) => {
   }
 };
 
-// Get admin settings
-router.get('/settings', requireAdmin, async (req, res) => {
+// Get admin settings (public endpoint for homepage display)
+router.get('/settings', async (req, res) => {
   try {
-    const user = await User.findById(req.userId);
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
+    // Find the admin user (first user with admin role)
+    const adminUser = await User.findOne({ role: 'admin' });
+
+    if (!adminUser) {
+      return res.status(404).json({ message: 'Admin user not found' });
     }
 
     res.json({
-      address: user.address || '',
-      mobile: user.mobile || '',
-      email: user.email || '',
-      whatsapp: user.whatsapp || ''
+      address: adminUser.address || '',
+      mobile: adminUser.mobile || '',
+      email: adminUser.email || '',
+      whatsapp: adminUser.whatsapp || ''
     });
   } catch (err) {
     res.status(500).json({ message: err.message });
