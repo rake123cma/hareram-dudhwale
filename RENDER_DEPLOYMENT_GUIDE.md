@@ -2,22 +2,30 @@
 
 ## ✅ Configuration Status: READY FOR DEPLOYMENT
 
-Your environment is now properly configured for Render.com production deployment with all the correct values:
+Your environment is now properly configured for Render.com production deployment.
 
-### 🔧 Environment Variables Updated
-- ✅ **NODE_ENV**: production
-- ✅ **MONGO_URI**: MongoDB Atlas connection string
-- ✅ **JWT_SECRET**: Secure production secret
-- ✅ **JWT_REFRESH_SECRET**: Secure refresh token secret
-- ✅ **GOOGLE_CLIENT_ID**: Production OAuth client ID
-- ✅ **GOOGLE_CLIENT_SECRET**: Production OAuth client secret
-- ✅ **GOOGLE_CALLBACK_URL**: Correct Render.com callback URL
-- ✅ **FRONTEND_URL**: Correct production frontend URL
-- ✅ **CORS_ORIGIN**: Production CORS configuration
+### 🔧 Environment Variables to Configure
+Set these environment variables in Render.com dashboard:
+
+```env
+NODE_ENV=production
+PORT=5000
+MONGO_URI=your_mongodb_atJWT_SECRET=yourlas_connection_string
+_jwt_secret_here
+JWT_REFRESH_SECRET=your_jwt_refresh_secret_here
+GOOGLE_CLIENT_ID=your_google_client_id_here
+GOOGLE_CLIENT_SECRET=your_google_client_secret_here
+GOOGLE_CALLBACK_URL=https://your-domain.onrender.com/api/auth/google/callback
+FRONTEND_URL=https://your-domain.onrender.com
+CORS_ORIGIN=https://your-domain.onrender.com
+RATE_LIMIT_WINDOW=900000
+RATE_LIMIT_MAX=1000
+ENCRYPTION_KEY=your_encryption_key_here
+OTP_EXPIRY=300000
+SESSION_TIMEOUT=3600000
+```
 
 ## 🎯 Critical Google Cloud Console Setup (REQUIRED)
-
-Since your app is deployed on Render.com, you **MUST** complete these Google Cloud Console steps:
 
 ### 1. OAuth Consent Screen
 1. Go to [Google Cloud Console](https://console.cloud.google.com/apis/credentials/consent)
@@ -37,7 +45,7 @@ Since your app is deployed on Render.com, you **MUST** complete these Google Clo
 2. Click on your OAuth 2.0 Client ID
 3. In "Authorized redirect URIs", add:
    ```
-   https://hareram-dudhwale.onrender.com/api/auth/google/callback
+   https://your-domain.onrender.com/api/auth/google/callback
    ```
 4. **Save and wait 2-3 minutes**
 
@@ -59,42 +67,24 @@ If your app is in "Testing" mode:
    - Start Command: `cd server && npm start`
 
 ### Step 2: Environment Variables in Render.com
-Add these environment variables in Render.com dashboard:
-
-```env
-NODE_ENV=production
-PORT=5000
-MONGO_URI=mongodb+srv://username:password@cluster.mongodb.net/database
-JWT_SECRET=your_jwt_secret_here
-JWT_REFRESH_SECRET=your_jwt_refresh_secret_here
-GOOGLE_CLIENT_ID=your_google_client_id_here
-GOOGLE_CLIENT_SECRET=your_google_client_secret_here
-GOOGLE_CALLBACK_URL=https://hareram-dudhwale.onrender.com/api/auth/google/callback
-FRONTEND_URL=https://hareram-dudhwale.onrender.com
-CORS_ORIGIN=https://hareram-dudhwale.onrender.com
-RATE_LIMIT_WINDOW=900000
-RATE_LIMIT_MAX=1000
-ENCRYPTION_KEY=hareram_dudhwale_encryption_key_2024_secure_!@
-OTP_EXPIRY=300000
-SESSION_TIMEOUT=3600000
-```
+Add the environment variables shown above in Render.com dashboard.
 
 ### Step 3: Test Production Deployment
 After deployment:
 
 1. **Health Check**:
    ```
-   https://hareram-dudhwale.onrender.com/health
+   https://your-domain.onrender.com/health
    ```
 
 2. **OAuth Test**:
    ```
-   https://hareram-dudhwale.onrender.com/api/auth/google-test
+   https://your-domain.onrender.com/api/auth/google-test
    ```
 
 3. **Frontend Test**:
    ```
-   https://hareram-dudhwale.onrender.com
+   https://your-domain.onrender.com
    ```
 
 ## 🛠️ Troubleshooting Production Issues
@@ -118,10 +108,10 @@ After deployment:
 ### Quick Debug Commands
 ```bash
 # Test your production configuration
-curl https://hareram-dudhwale.onrender.com/api/auth/google-test
+curl https://your-domain.onrender.com/api/auth/google-test
 
 # Check health
-curl https://hareram-dudhwale.onrender.com/health
+curl https://your-domain.onrender.com/health
 ```
 
 ## 🎉 Expected Results
