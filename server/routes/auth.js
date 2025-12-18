@@ -1,0 +1,589 @@
+const express = require('express');
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
+const passport = require('passport');
+const User = require('../models/User');
+const Customer = require('../models/Customer');
+
+// Temporary OTP storage (in production, use Redis or database)
+const otpStore = new Map();
+
+const router = express.Router();
+
+// Generate random 6-digit OTP
+const generateOTP = () => {
+  return Math.floor(100000 + Math.random() * 900000).toString();
+};
+
+// Send OTP
+router.post('/send-otp', async (req, res) => {
+  const { mobile } = req.body;
+  try {
+    // Check if customer exists
+    const customer = await Customer.findOne({ phone: mobile });
+
+    if (!customer) {
+      return res.status(404).json({ message: 'Mobile number not registered. Please register first.' });
+    }
+
+    // Check if user account exists
+    const user = await User.findOne({ customer_id: customer._id });
+    if (!user) {
+      return res.status(404).json({ message: 'User account not found. Please contact admin.' });
+    }
+
+    const otp = generateOTP();
+    otpStore.set(mobile, { otp, expiresAt: Date.now() + 5 * 60 * 1000 }); // 5 minutes expiry
+
+    // In production, send SMS here
+
+    res.json({ message: 'OTP sent successfully' });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// Verify OTP
+router.post('/verify-otp', async (req, res) => {
+  const { mobile, otp } = req.body;
+  try {
+    const storedOTP = otpStore.get(mobile);
+
+    if (!storedOTP || storedOTP.expiresAt < Date.now()) {
+      return res.status(400).json({ message: 'OTP expired or invalid' });
+    }
+
+    if (storedOTP.otp !== otp) {
+      return res.status(400).json({ message: 'Invalid OTP' });
+    }
+
+    // Find customer and user
+    const customer = await Customer.findOne({ phone: mobile });
+    const user = await User.findOne({ customer_id: customer._id });
+
+    if (!user) {
+      return res.status(404).json({ message: 'User account not found' });
+    }
+
+    // Generate JWT token and refresh token
+    const token = jwt.sign({ id: user._id, role: user.role, customer_id: user.customer_id }, process.env.JWT_SECRET, { expiresIn: '1h' });
+    const refreshToken = jwt.sign({ id: user._id }, process.env.JWT_REFRESH_SECRET, { expiresIn: '7d' });
+
+    // Clear OTP
+    otpStore.delete(mobile);
+
+    res.json({
+      token,
+      refreshToken,
+      user: { id: user._id, username: user.username, role: user.role }
+    });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// Password validation function
+const validatePassword = (password) => {
+  const minLength = 8;
+  const hasUpperCase = /[A-Z]/.test(password);
+  const hasLowerCase = /[a-z]/.test(password);
+  const hasNumbers = /\d/.test(password);
+  const hasSpecialChar = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password);
+
+  if (password.length < minLength) {
+    return 'Password must be at least 8 characters long';
+  }
+  if (!hasUpperCase) {
+    return 'Password must contain at least one uppercase letter';
+  }
+  if (!hasLowerCase) {
+    return 'Password must contain at least one lowercase letter';
+  }
+  if (!hasNumbers) {
+    return 'Password must contain at least one number';
+  }
+  if (!hasSpecialChar) {
+    return 'Password must contain at least one special character';
+  }
+  return null;
+};
+
+// Register with OTP
+router.post('/register', async (req, res) => {
+  const { name, phone, email, address, pincode, password, billing_type, subscription_amount, price_per_liter } = req.body;
+
+  // Validate password complexity
+  const passwordError = validatePassword(password);
+  if (passwordError) {
+    return res.status(400).json({ message: passwordError });
+  }
+
+  try {
+    // Check if customer already exists
+    const existingCustomer = await Customer.findOne({ phone });
+    if (existingCustomer) {
+      return res.status(400).json({ message: 'Customer already exists with this phone number' });
+    }
+
+    // Create customer with optional billing info (will be set by admin later)
+    const customer = new Customer({
+      name,
+      phone,
+      email,
+      address,
+      pincode,
+      category: 'General', // Default category for registration
+      billing_type: billing_type || undefined, // Optional - set by admin later
+      subscription_amount: subscription_amount ? parseFloat(subscription_amount) : undefined,
+      price_per_liter: price_per_liter ? parseFloat(price_per_liter) : undefined,
+      customer_type: 'guest customer' // Default type - admin can change later
+    });
+    await customer.save();
+
+    // Create user account with provided password
+    const user = new User({
+      username: phone,
+      password: await bcrypt.hash(password, 10),
+      role: 'customer',
+      customer_id: customer._id
+    });
+    await user.save();
+
+    // Generate and store OTP
+    const otp = generateOTP();
+    otpStore.set(phone, { otp, expiresAt: Date.now() + 5 * 60 * 1000 });
+
+    // In production, send SMS here
+
+    res.status(201).json({ message: 'Registration successful. OTP sent to your mobile.' });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// Legacy register endpoint (for admin use)
+router.post('/register-admin', async (req, res) => {
+  const { name, phone, email, address, password, billing_type, subscription_amount } = req.body;
+  try {
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const customer = new Customer({ name, phone, email, address, billing_type, subscription_amount });
+    await customer.save();
+    const user = new User({ username: phone, password: hashedPassword, role: 'customer', customer_id: customer._id });
+    await user.save();
+    res.status(201).json({ message: 'User registered' });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// Login
+router.post('/login', async (req, res) => {
+  const { username, password } = req.body;
+  try {
+    const user = await User.findOne({ username });
+
+    // Check password
+    const isValidPassword = user && await bcrypt.compare(password, user.password);
+
+    if (!user || !isValidPassword) {
+      return res.status(401).json({ message: 'Invalid credentials' });
+    }
+
+    const token = jwt.sign({ id: user._id, role: user.role, customer_id: user.customer_id }, process.env.JWT_SECRET, { expiresIn: '1h' });
+    const refreshToken = jwt.sign({ id: user._id }, process.env.JWT_REFRESH_SECRET, { expiresIn: '7d' });
+    res.json({
+      token,
+      refreshToken,
+      user: { id: user._id, username: user.username, role: user.role }
+    });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// Alternative: Simple Email/Password Authentication (works without Google OAuth)
+router.post('/email-login', async (req, res) => {
+  const { email, password } = req.body;
+  try {
+    // Find user by email
+    const user = await User.findOne({ $or: [{ email: email }, { username: email }] });
+
+    if (!user) {
+      return res.status(401).json({ message: 'User not found with this email' });
+    }
+
+    // Check if user has a password (not just OAuth users)
+    if (!user.password) {
+      return res.status(401).json({ message: 'Please use Google OAuth or contact admin to set a password' });
+    }
+
+    // Check password
+    const isValidPassword = await bcrypt.compare(password, user.password);
+
+    if (!isValidPassword) {
+      return res.status(401).json({ message: 'Invalid password' });
+    }
+
+    const token = jwt.sign({ id: user._id, role: user.role, customer_id: user.customer_id }, process.env.JWT_SECRET, { expiresIn: '1h' });
+    const refreshToken = jwt.sign({ id: user._id }, process.env.JWT_REFRESH_SECRET, { expiresIn: '7d' });
+
+    res.json({
+      token,
+      refreshToken,
+      user: { id: user._id, username: user.username, role: user.role, email: user.email }
+    });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// Register with email/password (alternative to OTP)
+router.post('/email-register', async (req, res) => {
+  const { name, email, password, phone } = req.body;
+
+  // Validate password complexity
+  const passwordError = validatePassword(password);
+  if (passwordError) {
+    return res.status(400).json({ message: passwordError });
+  }
+
+  try {
+    // Check if user already exists
+    const existingUser = await User.findOne({ $or: [{ email: email }, { username: email }] });
+    if (existingUser) {
+      return res.status(400).json({ message: 'User already exists with this email' });
+    }
+
+    // Check if customer exists with phone (optional)
+    let customer = null;
+    if (phone) {
+      customer = await Customer.findOne({ phone });
+      if (!customer) {
+        // Create customer if phone provided but doesn't exist
+        customer = new Customer({
+          name,
+          phone,
+          email,
+          category: 'General',
+          customer_type: 'guest customer'
+        });
+        await customer.save();
+      }
+    } else {
+      // Create customer without phone
+      customer = new Customer({
+        name,
+        email,
+        category: 'General',
+        customer_type: 'guest customer'
+      });
+      await customer.save();
+    }
+
+    // Create user account
+    const user = new User({
+      username: email,
+      email: email,
+      password: await bcrypt.hash(password, 10),
+      role: 'customer',
+      customer_id: customer._id
+    });
+    await user.save();
+
+    // Generate tokens immediately (no OTP required)
+    const token = jwt.sign({ id: user._id, role: user.role, customer_id: user.customer_id }, process.env.JWT_SECRET, { expiresIn: '1h' });
+    const refreshToken = jwt.sign({ id: user._id }, process.env.JWT_REFRESH_SECRET, { expiresIn: '7d' });
+
+    res.status(201).json({
+      message: 'Registration successful',
+      token,
+      refreshToken,
+      user: { id: user._id, username: user.username, role: user.role, email: user.email }
+    });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// Forgot password - send OTP
+router.post('/forgot-password', async (req, res) => {
+  const { mobile } = req.body;
+  try {
+    // Check if customer exists
+    const customer = await Customer.findOne({ phone: mobile });
+
+    if (!customer) {
+      return res.status(404).json({ message: 'Mobile number not registered. Please register first.' });
+    }
+
+    // Check if user account exists
+    const user = await User.findOne({ customer_id: customer._id });
+    if (!user) {
+      return res.status(404).json({ message: 'User account not found. Please contact admin.' });
+    }
+
+    const otp = generateOTP();
+    otpStore.set(mobile, { otp, expiresAt: Date.now() + 5 * 60 * 1000, type: 'reset' }); // 5 minutes expiry, mark as reset
+
+    // In production, send SMS here
+
+    res.json({ message: 'OTP sent successfully for password reset' });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// Reset password - verify OTP and update password
+router.post('/reset-password', async (req, res) => {
+  const { mobile, otp, newPassword } = req.body;
+
+  // Validate password complexity
+  const passwordError = validatePassword(newPassword);
+  if (passwordError) {
+    return res.status(400).json({ message: passwordError });
+  }
+
+  try {
+    const storedOTP = otpStore.get(mobile);
+
+    if (!storedOTP || storedOTP.type !== 'reset' || storedOTP.expiresAt < Date.now()) {
+      return res.status(400).json({ message: 'OTP expired or invalid' });
+    }
+
+    if (storedOTP.otp !== otp) {
+      return res.status(400).json({ message: 'Invalid OTP' });
+    }
+
+    // Find customer and user
+    const customer = await Customer.findOne({ phone: mobile });
+    const user = await User.findOne({ customer_id: customer._id });
+
+    if (!user) {
+      return res.status(404).json({ message: 'User account not found' });
+    }
+
+    // Update password
+    user.password = await bcrypt.hash(newPassword, 10);
+    await user.save();
+
+    // Clear OTP
+    otpStore.delete(mobile);
+
+    res.json({ message: 'Password reset successful' });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// Refresh token endpoint
+router.post('/refresh-token', async (req, res) => {
+  const { refreshToken } = req.body;
+
+  if (!refreshToken) {
+    return res.status(401).json({ message: 'Refresh token required' });
+  }
+
+  try {
+    const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
+    const user = await User.findById(decoded.id);
+
+    if (!user) {
+      return res.status(401).json({ message: 'User not found' });
+    }
+
+    // Generate new access token
+    const newToken = jwt.sign(
+      { id: user._id, role: user.role, customer_id: user.customer_id },
+      process.env.JWT_SECRET,
+      { expiresIn: '1h' }
+    );
+
+    res.json({ token: newToken });
+  } catch (err) {
+    res.status(401).json({ message: 'Invalid refresh token' });
+  }
+});
+
+// TEST: Simple Google OAuth route
+router.get('/google-test', (req, res) => {
+  console.log('🚀 Google OAuth test route accessed');
+  res.json({
+    message: 'Google OAuth test route working',
+    client_id: process.env.GOOGLE_CLIENT_ID ? 'present (' + process.env.GOOGLE_CLIENT_ID.substring(0, 20) + '...)' : 'missing',
+    client_secret: process.env.GOOGLE_CLIENT_SECRET ? 'present (' + process.env.GOOGLE_CLIENT_SECRET.substring(0, 10) + '...)' : 'missing',
+    callback_url: process.env.GOOGLE_CALLBACK_URL,
+    jwt_secret: process.env.JWT_SECRET ? 'present' : 'MISSING - THIS WILL CAUSE 500 ERROR',
+    jwt_refresh_secret: process.env.JWT_REFRESH_SECRET ? 'present' : 'MISSING - THIS WILL CAUSE 500 ERROR',
+    current_time: new Date().toISOString(),
+    troubleshooting: {
+      'Issue': 'TokenError: Malformed auth code',
+      'Cause': 'Google Cloud Console OAuth configuration incomplete',
+      'Solutions': [
+        '1. Complete OAuth consent screen setup',
+        '2. Add your email as test user if app is in testing mode',
+        '3. Verify redirect URIs match exactly',
+        '4. Wait 2-3 minutes after changes',
+        '5. Check JWT_SECRET and JWT_REFRESH_SECRET are set'
+      ],
+      'Console_URL': 'https://console.cloud.google.com/apis/credentials/consent',
+      'Project': 'hareram-dudhwale'
+    }
+  });
+});
+
+// Google OAuth routes
+router.get('/google', (req, res, next) => {
+  console.log('🚀 Initiating Google OAuth flow');
+
+  // Override CSP for OAuth flow (remove restrictive CSP temporarily)
+  res.removeHeader('Content-Security-Policy');
+
+  // Validate environment variables before starting OAuth
+  if (!process.env.GOOGLE_CLIENT_ID) {
+    console.error('❌ GOOGLE_CLIENT_ID is missing from environment variables');
+    return res.status(500).json({
+      error: 'Google OAuth not configured properly',
+      details: 'GOOGLE_CLIENT_ID is missing from environment variables'
+    });
+  }
+
+  if (!process.env.GOOGLE_CLIENT_SECRET) {
+    console.error('❌ GOOGLE_CLIENT_SECRET is missing from environment variables');
+    return res.status(500).json({
+      error: 'Google OAuth not configured properly',
+      details: 'GOOGLE_CLIENT_SECRET is missing from environment variables'
+    });
+  }
+
+  console.log('✅ Environment validation passed');
+  console.log('Client ID:', process.env.GOOGLE_CLIENT_ID ? 'present' : 'missing');
+  console.log('Callback URL:', process.env.GOOGLE_CALLBACK_URL || 'using default');
+  console.log('Frontend URL:', process.env.FRONTEND_URL || 'using default');
+
+  next();
+}, passport.authenticate('google', {
+  scope: ['openid', 'profile', 'email'],
+  accessType: 'offline',
+  prompt: 'consent',
+  failureRedirect: '/api/auth/google/failure'
+}));
+
+// Google OAuth callback
+router.get('/google/callback',
+  async (req, res, next) => {
+    console.log('🔄 Google OAuth callback route triggered');
+    
+    // Log the query parameters for debugging
+    console.log('🔍 Query parameters received:', {
+      code: req.query.code ? 'present' : 'missing',
+      error: req.query.error || 'none',
+      scope: req.query.scope || 'none'
+    });
+    
+    // Handle OAuth errors
+    if (req.query.error) {
+      console.error('❌ OAuth error received:', req.query.error);
+
+      let errorMessage = 'Authentication failed';
+      switch (req.query.error) {
+        case 'access_denied':
+          errorMessage = 'User denied access';
+          break;
+        case 'server_error':
+          errorMessage = 'Google server error';
+          break;
+        case 'temporarily_unavailable':
+          errorMessage = 'Google service temporarily unavailable';
+          break;
+        case 'invalid_request':
+          errorMessage = 'Invalid OAuth request';
+          break;
+        default:
+          errorMessage = `OAuth error: ${req.query.error}`;
+      }
+
+      const frontendURL = process.env.FRONTEND_URL || 'https://hareram-dudhwale.onrender.com';
+      return res.redirect(`${frontendURL}/login?error=${encodeURIComponent(errorMessage)}`);
+    }
+    
+    next();
+  },
+  passport.authenticate('google', {
+    failureRedirect: '/api/auth/google/failure',
+    session: false
+  }),
+  async (req, res) => {
+    try {
+      console.log('✅ Google OAuth authentication successful');
+      const user = req.user;
+      console.log('👤 User object:', {
+        id: user._id,
+        email: user.email,
+        username: user.username,
+        role: user.role
+      });
+
+      if (!user) {
+        console.error('❌ No user object found in Google OAuth callback');
+        const frontendURL = process.env.FRONTEND_URL || 'https://hareram-dudhwale.onrender.com';
+        return res.redirect(`${frontendURL}/login?error=no_user`);
+      }
+
+      // Generate JWT token and refresh token
+      const token = jwt.sign({
+        id: user._id,
+        role: user.role,
+        customer_id: user.customer_id
+      }, process.env.JWT_SECRET, { expiresIn: '1h' });
+      
+      const refreshToken = jwt.sign({ id: user._id }, process.env.JWT_REFRESH_SECRET, { expiresIn: '7d' });
+
+      console.log('🔐 Tokens generated successfully');
+
+      // Redirect to frontend with tokens
+      const frontendURL = process.env.FRONTEND_URL || 'https://hareram-dudhwale.onrender.com';
+      const redirectURL = `${frontendURL}/login?token=${token}&refreshToken=${refreshToken}&user=${encodeURIComponent(JSON.stringify({
+        id: user._id,
+        username: user.username,
+        role: user.role,
+        email: user.email
+      }))}`;
+
+      console.log('🔗 Redirecting to:', redirectURL.substring(0, 100) + '...');
+      res.redirect(redirectURL);
+    } catch (err) {
+      console.error('❌ Google OAuth callback error:', err);
+
+      // Handle specific OAuth errors
+      if (err.message && err.message.includes('Malformed auth code')) {
+        console.error('🚨 MALFORMED AUTH CODE ERROR:');
+        console.error('   This usually indicates:');
+        console.error('   1. OAuth consent screen not completed in Google Console');
+        console.error('   2. App is in testing mode - need to add test users');
+        console.error('   3. Redirect URI mismatch in Google Console');
+        console.error('   4. Client ID or Secret is incorrect');
+        console.error('   5. OAuth flow was interrupted');
+
+        const frontendURL = process.env.FRONTEND_URL || 'https://hareram-dudhwale.onrender.com';
+        return res.redirect(`${frontendURL}/login?error=oauth_config_issue&details=malformed_auth_code`);
+      }
+
+      const frontendURL = process.env.FRONTEND_URL || 'https://hareram-dudhwale.onrender.com';
+      res.redirect(`${frontendURL}/login?error=oauth_callback_failed`);
+    }
+  }
+);
+
+// Google OAuth failure route
+router.get('/google/failure', (req, res) => {
+  console.error('❌ Google OAuth failed');
+  console.error('🔍 Error details:', {
+    query: req.query,
+    headers: req.headers
+  });
+
+  const frontendURL = process.env.FRONTEND_URL || 'https://hareram-dudhwale.onrender.com';
+  res.redirect(`${frontendURL}/login?error=google_auth_failed`);
+});
+
+module.exports = router;
