@@ -64,11 +64,11 @@ Add these environment variables in Render.com dashboard:
 ```env
 NODE_ENV=production
 PORT=5000
-MONGO_URI=mongodb+srv://rake123cma_db_user:Hrms%402014@hareram-dudhwale.twfcdzw.mongodb.net/hareram_dudhwale?appName=hareram-dudhwale
-JWT_SECRET=hareram_dudhwale_secure_jwt_secret_2024_!@
-JWT_REFRESH_SECRET=hareram_dudhwale_refresh_secret_2024_!@
-GOOGLE_CLIENT_ID=552482128074-0bp5h2iatpu46g8m3fi1449vh0o7v2a7.apps.googleusercontent.com
-GOOGLE_CLIENT_SECRET=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
+MONGO_URI=mongodb+srv://username:password@cluster.mongodb.net/database
+JWT_SECRET=your_jwt_secret_here
+JWT_REFRESH_SECRET=your_jwt_refresh_secret_here
+GOOGLE_CLIENT_ID=your_google_client_id_here
+GOOGLE_CLIENT_SECRET=your_google_client_secret_here
 GOOGLE_CALLBACK_URL=https://hareram-dudhwale.onrender.com/api/auth/google/callback
 FRONTEND_URL=https://hareram-dudhwale.onrender.com
 CORS_ORIGIN=https://hareram-dudhwale.onrender.com
