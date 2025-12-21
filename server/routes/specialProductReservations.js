@@ -151,6 +151,7 @@ router.get('/my-reservations', auth, async (req, res) => {
   try {
     const reservations = await SpecialProductReservation.find({ customer_id: req.user.customer_id })
       .populate('product_id', 'name category is_special_product is_advance_bookable')
+      .populate('customer_id', 'name phone email')
       .sort({ createdAt: -1 });
 
     res.json(reservations);

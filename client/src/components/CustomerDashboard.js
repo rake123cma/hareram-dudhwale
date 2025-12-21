@@ -4,6 +4,8 @@ import axios from 'axios';
 import Swal from 'sweetalert2';
 import { FaUser, FaShoppingCart, FaHistory, FaFileInvoice, FaEdit, FaCreditCard, FaBell, FaRupeeSign, FaCheckCircle, FaTimesCircle, FaDownload, FaPlus, FaMinus, FaTrash, FaStar, FaMapMarkerAlt, FaPhone, FaEnvelope, FaSignOutAlt, FaBox, FaCog, FaTruck, FaCheck, FaCalendarAlt, FaClock, FaShoppingBag, FaRoute, FaEye, FaExclamationTriangle } from 'react-icons/fa';
 import { GiMilkCarton } from 'react-icons/gi';
+import { formatCurrency } from '../utils/currency';
+import ProfilePicture from './ProfilePicture';
 
 const CustomerDashboard = () => {
   const navigate = useNavigate();
@@ -58,6 +60,12 @@ const CustomerDashboard = () => {
     confirmPassword: ''
   });
   const [passwordChanging, setPasswordChanging] = useState(false);
+  const [showSetPassword, setShowSetPassword] = useState(false);
+  const [setPasswordForm, setSetPasswordForm] = useState({
+    newPassword: '',
+    confirmPassword: ''
+  });
+  const [setPasswordLoading, setSetPasswordLoading] = useState(false);
 
   // Helper functions for special reservations
   const getSpecialStatusColor = (status) => {
@@ -206,6 +214,7 @@ const CustomerDashboard = () => {
         axios.get('/api/customers/my-sales', config)
       ]);
 
+      // Profile data received
       setProfile(profileRes.data);
       setBalance(balanceRes.data.balance);
       setRecentSales(salesRes.data.slice(0, 5)); // Last 5 deliveries
@@ -655,7 +664,7 @@ const CustomerDashboard = () => {
         headers: { Authorization: `Bearer ${token}` }
       };
 
-      console.log('Fetching bill with token:', token ? 'Token exists' : 'No token');
+      // Fetching bill
       const response = await axios.get(`/api/billing/${billId}/pdf`, config);
       setBillPreviewContent(response.data);
       setBillPreviewInvoice(invoiceNumber);
@@ -714,12 +723,34 @@ const CustomerDashboard = () => {
       const token = localStorage.getItem('token');
       const config = { headers: { Authorization: `Bearer ${token}` } };
 
-      await axios.put('/api/customers/my-profile', profileForm, config);
-      setProfile({ ...profile, ...profileForm });
+      // Only include phone if it's a valid phone number (not empty and not google-oauth)
+      const cleanedProfileForm = {};
+      Object.keys(profileForm).forEach(key => {
+        if (key === 'phone') {
+          if (profileForm[key] && !profileForm[key].startsWith('google-oauth-') && profileForm[key].trim()) {
+            cleanedProfileForm[key] = profileForm[key].trim();
+          }
+          // Skip empty or google-oauth phone numbers
+        } else if (profileForm[key] !== undefined && profileForm[key] !== null && profileForm[key] !== '') {
+          cleanedProfileForm[key] = profileForm[key];
+        }
+      });
+
+      // Ensure required fields are always included
+      cleanedProfileForm.name = profileForm.name || profile.name;
+      cleanedProfileForm.category = profileForm.category || profile.category || 'General';
+
+      // Updating profile
+      
+      const response = await axios.put('/api/customers/my-profile', cleanedProfileForm, config);
+      setProfile({ ...profile, ...cleanedProfileForm });
       setEditingProfile(false);
       Swal.fire('Profile updated successfully!', '', 'success');
     } catch (err) {
-      Swal.fire('Failed to update profile. Please try again.', '', 'error');
+      console.error('Profile update error:', err);
+      console.error('Error response:', err.response?.data);
+      const errorMessage = err.response?.data?.message || err.message || 'Failed to update profile. Please try again.';
+      Swal.fire('Failed to update profile. Please try again.', errorMessage, 'error');
     }
   };
 
@@ -733,6 +764,7 @@ const CustomerDashboard = () => {
   const startEditingProfile = () => {
     setProfileForm({
       ...profile,
+      phone: profile.phone && !profile.phone.startsWith('google-oauth-') ? profile.phone : '',
       billing_type: profile.billing_type || 'subscription',
       subscription_amount: profile.subscription_amount || '',
       price_per_liter: profile.price_per_liter || ''
@@ -770,6 +802,35 @@ const CustomerDashboard = () => {
       showAlert(errorMessage, 'error');
     } finally {
       setPasswordChanging(false);
+    }
+  };
+
+  const handleSetPassword = async (e) => {
+    e.preventDefault();
+    if (setPasswordForm.newPassword !== setPasswordForm.confirmPassword) {
+      showAlert('Password and confirmation do not match', 'error');
+      return;
+    }
+
+    setSetPasswordLoading(true);
+    try {
+      const token = localStorage.getItem('token');
+      const config = { headers: { Authorization: `Bearer ${token}` } };
+
+      await axios.put('/api/customers/set-password', setPasswordForm, config);
+      showAlert('Password set successfully! You can now login with email and password.', 'success');
+      setShowSetPassword(false);
+      setSetPasswordForm({
+        newPassword: '',
+        confirmPassword: ''
+      });
+      // Refresh profile to update password status
+      fetchDashboardData();
+    } catch (err) {
+      const errorMessage = err.response?.data?.message || 'Failed to set password';
+      showAlert(errorMessage, 'error');
+    } finally {
+      setSetPasswordLoading(false);
     }
   };
 
@@ -867,8 +928,15 @@ const CustomerDashboard = () => {
       )}
 
       <div className="flex items-center gap-3 mb-6">
-        <FaUser className="text-blue-600 text-xl" />
-        <h3 className="text-2xl font-bold text-gray-800">Milk Delivery Dashboard</h3>
+        <ProfilePicture 
+          profile={profile} 
+          size="md" 
+          className="shadow-lg"
+        />
+        <div>
+          <h3 className="text-2xl font-bold text-gray-800">Milk Delivery Dashboard</h3>
+          <p className="text-gray-600 text-sm">Welcome back, {profile.name || 'Customer'}!</p>
+        </div>
       </div>
 
       {/* Special Reservations Quick View */}
@@ -958,7 +1026,21 @@ const CustomerDashboard = () => {
             </div>
             <div className="flex items-center gap-3">
               <FaPhone className="text-green-500 text-sm" />
-              <span className="text-gray-600">{profile.phone}</span>
+              <span className="text-gray-600">
+                {profile.phone && !profile.phone.startsWith('google-oauth-') ? profile.phone : 'Not set'}
+              </span>
+            </div>
+            <div className="flex items-center gap-3">
+              <FaEnvelope className="text-purple-500 text-sm" />
+              <div className="flex items-center gap-2">
+                <span className="text-gray-600">{profile.email || 'Not set'}</span>
+                {profile.provider === 'google' && (
+                  <div className="flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full font-medium">
+                    <FaEnvelope className="text-xs" />
+                    Google
+                  </div>
+                )}
+              </div>
             </div>
             <div className="flex items-center gap-3">
               <FaMapMarkerAlt className="text-red-500 text-sm" />
@@ -977,7 +1059,7 @@ const CustomerDashboard = () => {
             </div>
           </div>
           <div className={`text-3xl font-bold mb-2 ${balance > 0 ? 'text-red-600' : 'text-green-600'}`}>
-            ₹{Math.abs(balance).toFixed(2)}
+            {formatCurrency(Math.abs(balance))}
           </div>
           <div className="flex items-center gap-2 text-sm">
             {balance > 0 ? (
@@ -2448,7 +2530,7 @@ const CustomerDashboard = () => {
             <div className="stat-card">
               <FaRupeeSign className="stat-icon" />
               <div className="stat-info">
-                <span className="stat-number">₹{salesHistory.reduce((sum, sale) => sum + sale.total_amount, 0).toFixed(2)}</span>
+                <span className="stat-number">{formatCurrency(salesHistory.reduce((sum, sale) => sum + sale.total_amount, 0))}</span>
                 <span className="stat-label">Total Spent</span>
               </div>
             </div>
@@ -2580,8 +2662,18 @@ const CustomerDashboard = () => {
       {!editingProfile ? (
         <div className="max-w-2xl">
           <div className="text-center mb-8">
-            <div className="w-24 h-24 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
-              <FaUser className="text-white text-3xl" />
+            <div className="w-24 h-24 mx-auto mb-4 shadow-lg overflow-hidden rounded-full">
+              {profile.profilePicture ? (
+                <img 
+                  src={profile.profilePicture} 
+                  alt={profile.name || 'Profile'} 
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="w-24 h-24 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+                  <FaUser className="text-white text-3xl" />
+                </div>
+              )}
             </div>
           </div>
 
@@ -2601,7 +2693,15 @@ const CustomerDashboard = () => {
                 <FaPhone className="text-green-500 text-lg" />
                 <div>
                   <label className="text-sm font-semibold text-gray-600 block">Mobile Number</label>
-                  <p className="text-gray-800 font-medium">{profile.phone}</p>
+                  <p className="text-gray-800 font-medium">
+                    {profile.phone && !profile.phone.startsWith('google-oauth-') ? profile.phone : 'Not set'}
+                  </p>
+                  {profile.phone && profile.phone.startsWith('google-oauth-') && (
+                    <p className="text-xs text-blue-600 mt-1">
+                      <FaEdit className="inline mr-1" />
+                      You can update your mobile number in profile settings
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
@@ -2609,9 +2709,23 @@ const CustomerDashboard = () => {
             <div className="bg-white p-4 rounded-lg shadow-md border border-gray-100">
               <div className="flex items-center gap-3 mb-2">
                 <FaEnvelope className="text-purple-500 text-lg" />
-                <div>
+                <div className="flex-1">
                   <label className="text-sm font-semibold text-gray-600 block">Email Address</label>
-                  <p className="text-gray-800 font-medium">{profile.email || 'Not set'}</p>
+                  <div className="flex items-center gap-2">
+                    <p className="text-gray-800 font-medium">{profile.email || 'Not set'}</p>
+                    {profile.provider === 'google' && (
+                      <div className="flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full font-medium">
+                        <FaEnvelope className="text-xs" />
+                        Google
+                      </div>
+                    )}
+                  </div>
+                  {profile.provider === 'google' && (
+                    <p className="text-xs text-blue-600 mt-1">
+                      <FaEdit className="inline mr-1" />
+                      Linked to your Google account
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
@@ -2645,14 +2759,64 @@ const CustomerDashboard = () => {
                 <p className="text-gray-700 font-medium">Manage your account password</p>
               </div>
             </div>
-            <div className="text-center">
-              <button
-                onClick={() => setShowPasswordChange(true)}
-                className="bg-gradient-to-r from-orange-500 to-red-500 text-white px-8 py-3 rounded-lg font-semibold hover:from-orange-600 hover:to-red-600 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105"
-              >
-                <FaEdit className="inline mr-2" /> Change Password
-              </button>
-            </div>
+            
+            {profile.provider === 'google' ? (
+              // Google OAuth User Password Management
+              <div className="space-y-4">
+                <div className="bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 rounded-lg p-4">
+                  <div className="flex items-start gap-3">
+                    <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <FaUser className="text-blue-600 text-sm" />
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="text-sm font-semibold text-blue-800 mb-1">Google Account User</h4>
+                      <p className="text-sm text-blue-700 leading-relaxed">
+                        You've signed in with Google. You can set up a password to also login with your email and password, or continue using Google sign-in only.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="text-center">
+                  {profile.hasPassword ? (
+                    // User has password - show change password option
+                    <button
+                      onClick={() => setShowPasswordChange(true)}
+                      className="bg-gradient-to-r from-orange-500 to-red-500 text-white px-8 py-3 rounded-lg font-semibold hover:from-orange-600 hover:to-red-600 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105"
+                    >
+                      <FaEdit className="inline mr-2" /> Change Password
+                    </button>
+                  ) : (
+                    // User doesn't have password - show set password option
+                    <button
+                      onClick={() => setShowSetPassword(true)}
+                      className="bg-gradient-to-r from-blue-500 to-blue-600 text-white px-8 py-3 rounded-lg font-semibold hover:from-blue-600 hover:to-blue-700 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105"
+                    >
+                      <FaEdit className="inline mr-2" /> Set Password
+                    </button>
+                  )}
+                </div>
+                
+                <div className="text-center">
+                  <p className="text-xs text-gray-500">
+                    {profile.hasPassword 
+                      ? 'You can change your password anytime. Google sign-in will continue to work.' 
+                      : 'Setting up a password allows you to login with email and password as an alternative to Google sign-in.'
+                    }
+                  </p>
+                </div>
+              </div>
+            ) : (
+              // Regular User Password Management
+              <div className="text-center">
+                <button
+                  onClick={() => setShowPasswordChange(true)}
+                  className="bg-gradient-to-r from-orange-500 to-red-500 text-white px-8 py-3 rounded-lg font-semibold hover:from-orange-600 hover:to-red-600 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105"
+                >
+                  <FaEdit className="inline mr-2" /> Change Password
+                </button>
+              </div>
+            )}
           </div>
 
           <div className="text-center">
@@ -2693,21 +2857,52 @@ const CustomerDashboard = () => {
               <label className="text-sm font-semibold text-gray-700">Mobile Number</label>
               <input
                 type="tel"
-                value={profile.phone}
-                disabled
-                className="w-full p-3 border-2 border-gray-200 rounded-lg bg-gray-100 text-gray-500 cursor-not-allowed"
+                value={profileForm.phone || ''}
+                onChange={(e) => setProfileForm({...profileForm, phone: e.target.value})}
+                placeholder="Enter your mobile number"
+                className="w-full p-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none transition-colors"
               />
-              <small className="text-gray-500 text-xs">Contact admin to change mobile number</small>
+              <small className="text-gray-500 text-xs">
+                {profile.phone && profile.phone.startsWith('google-oauth-') 
+                  ? 'Update your mobile number for better service'
+                  : 'Your mobile number for account access'
+                }
+              </small>
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-semibold text-gray-700">Email Address</label>
-              <input
-                type="email"
-                value={profileForm.email || ''}
-                onChange={(e) => setProfileForm({...profileForm, email: e.target.value})}
-                className="w-full p-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none transition-colors"
-              />
+              <label className="text-sm font-semibold text-gray-700">Email Address {profile.provider === 'google' && <span className="text-red-500">*</span>}</label>
+              <div className="relative">
+                <input
+                  type="email"
+                  value={profileForm.email || ''}
+                  onChange={(e) => setProfileForm({...profileForm, email: e.target.value})}
+                  readOnly={profile.provider === 'google'}
+                  className={`w-full p-3 border-2 rounded-lg focus:outline-none transition-colors ${
+                    profile.provider === 'google'
+                      ? 'bg-gray-50 border-gray-200 text-gray-600 cursor-not-allowed'
+                      : 'border-gray-200 focus:border-blue-500'
+                  }`}
+                  required
+                />
+                {profile.provider === 'google' && (
+                  <div className="absolute inset-y-0 right-0 flex items-center pr-3">
+                    <FaEnvelope className="text-gray-400" />
+                  </div>
+                )}
+              </div>
+              {profile.provider === 'google' ? (
+                <div className="flex items-center gap-2 mt-2">
+                  <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                  <small className="text-blue-600 font-medium">
+                    Email linked to Google account - cannot be changed
+                  </small>
+                </div>
+              ) : (
+                <small className="text-gray-500 text-xs">
+                  Your email address for account access
+                </small>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -3986,6 +4181,125 @@ const CustomerDashboard = () => {
                     <>
                       <FaCheckCircle className="text-sm" />
                       Change Password
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Set Password Modal for Google OAuth Users */}
+      {showSetPassword && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between p-6 border-b border-gray-200">
+              <div className="flex items-center gap-3">
+                <FaEdit className="text-blue-600 text-xl" />
+                <h3 className="text-xl font-bold text-gray-800">Set Password</h3>
+              </div>
+              <button
+                onClick={() => {
+                  setShowSetPassword(false);
+                  setSetPasswordForm({
+                    newPassword: '',
+                    confirmPassword: ''
+                  });
+                }}
+                className="text-gray-400 hover:text-gray-600 text-2xl w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors"
+              >
+                ×
+              </button>
+            </div>
+
+            <form onSubmit={handleSetPassword} className="p-6 space-y-6">
+              <div>
+                <h4 className="text-lg font-semibold text-gray-800 mb-4">Create Your Account Password</h4>
+                <div className="bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 rounded-lg p-4 mb-6">
+                  <div className="flex items-start gap-3">
+                    <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <FaUser className="text-blue-600 text-sm" />
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="text-sm font-semibold text-blue-800 mb-1">Google Account User</h4>
+                      <p className="text-sm text-blue-700 leading-relaxed">
+                        Set up a password to login with your email and password as an alternative to Google sign-in. You can continue using Google sign-in even after setting a password.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  New Password <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="password"
+                  value={setPasswordForm.newPassword}
+                  onChange={(e) => setSetPasswordForm({...setPasswordForm, newPassword: e.target.value})}
+                  className="w-full p-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none transition-colors"
+                  placeholder="Enter your new password"
+                  required
+                />
+                <small className="text-gray-500 text-xs mt-1 block">
+                  Password must be at least 8 characters with uppercase, lowercase, number and special character
+                </small>
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Confirm Password <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="password"
+                  value={setPasswordForm.confirmPassword}
+                  onChange={(e) => setSetPasswordForm({...setPasswordForm, confirmPassword: e.target.value})}
+                  className="w-full p-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none transition-colors"
+                  placeholder="Re-enter your password"
+                  required
+                />
+              </div>
+
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                <div className="flex items-center gap-2">
+                  <FaExclamationTriangle className="text-yellow-600 text-sm" />
+                  <span className="text-sm font-medium text-yellow-800">Important</span>
+                </div>
+                <p className="text-sm text-yellow-700 mt-1">
+                  After setting your password, you'll be able to login with either Google sign-in or your email and password.
+                </p>
+              </div>
+
+              <div className="flex gap-4 justify-end pt-4">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowSetPassword(false);
+                    setSetPasswordForm({
+                      newPassword: '',
+                      confirmPassword: ''
+                    });
+                  }}
+                  className="px-6 py-3 bg-gray-500 text-white rounded-lg font-semibold hover:bg-gray-600 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={setPasswordLoading}
+                  className="px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg font-semibold hover:from-blue-600 hover:to-blue-700 transition-all duration-300 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center gap-2"
+                >
+                  {setPasswordLoading ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                      Setting Password...
+                    </>
+                  ) : (
+                    <>
+                      <FaCheckCircle className="text-sm" />
+                      Set Password
                     </>
                   )}
                 </button>

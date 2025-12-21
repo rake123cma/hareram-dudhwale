@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import Swal from 'sweetalert2';
 import { FaEdit, FaTrash, FaTimes, FaUserPlus } from 'react-icons/fa';
@@ -9,6 +9,9 @@ const PendingCustomers = () => {
   const [error, setError] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
+  const [isSearching, setIsSearching] = useState(false);
   const [formData, setFormData] = useState({
     billing_type: 'subscription',
     billing_frequency: 'monthly',
@@ -147,6 +150,36 @@ const PendingCustomers = () => {
     setError('');
   };
 
+  // Debounce search term to improve performance
+  useEffect(() => {
+    setIsSearching(true);
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+      setIsSearching(false);
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
+  const getFilteredCustomers = useCallback(() => {
+    if (debouncedSearchTerm.trim() === '') {
+      return customers;
+    }
+    
+    const searchLower = debouncedSearchTerm.toLowerCase();
+    return customers.filter(customer => {
+      const customerName = (customer.name || '').toLowerCase();
+      const customerPhone = customer.phone || '';
+      const customerEmail = (customer.email || '').toLowerCase();
+      const customerAddress = (customer.address || '').toLowerCase();
+      
+      return customerName.includes(searchLower) ||
+             customerPhone.includes(debouncedSearchTerm) ||
+             customerEmail.includes(searchLower) ||
+             customerAddress.includes(searchLower);
+    });
+  }, [customers, debouncedSearchTerm]);
+
   if (loading) return <div className="text-center p-10 text-sm sm:text-base md:text-lg text-gray-500">Loading pending customers...</div>;
 
   return (
@@ -157,6 +190,29 @@ const PendingCustomers = () => {
           New Customer Registrations
         </h2>
         <p className="text-gray-600 mt-2">Review and activate new customer registrations</p>
+        
+        {/* Search Bar */}
+        <div className="mt-4">
+          <div className="relative max-w-md">
+            <input
+              type="text"
+              placeholder="Search customers by name, phone, email, or address..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full p-3 pl-10 border border-gray-300 rounded-lg text-sm text-black focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+              disabled={loading}
+            />
+            <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
+              {isSearching ? '⏳' : '🔍'}
+            </div>
+          </div>
+          {searchTerm && (
+            <div className="mt-2 text-sm text-gray-600 flex items-center gap-2">
+              <span>Showing {getFilteredCustomers().length} of {customers.length} registrations</span>
+              {isSearching && <span className="text-blue-500">Searching...</span>}
+            </div>
+          )}
+        </div>
       </div>
 
       {error && <div className="bg-red-500 text-white p-2.5 rounded mb-5">{error}</div>}
@@ -281,7 +337,7 @@ const PendingCustomers = () => {
             </tr>
           </thead>
           <tbody>
-            {customers.map((customer, index) => (
+            {getFilteredCustomers().map((customer, index) => (
               <tr key={customer._id} className={`${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-blue-50`}>
                 <td className="p-3 text-left border-b border-gray-200 text-gray-800 text-sm sm:text-base">{customer.name}</td>
                 <td className="p-3 text-left border-b border-gray-200 text-gray-800 text-sm sm:text-base">{customer.phone}</td>
@@ -322,9 +378,17 @@ const PendingCustomers = () => {
             ))}
           </tbody>
         </table>
+        
+        {getFilteredCustomers().length === 0 && searchTerm && (
+          <div className="text-center py-12">
+            <div className="text-6xl text-gray-300 mb-4">🔍</div>
+            <h4 className="text-xl font-semibold text-gray-800 mb-2">No registrations found</h4>
+            <p className="text-gray-600">No registrations match your search criteria "{searchTerm}"</p>
+          </div>
+        )}
       </div>
 
-      {customers.length === 0 && (
+      {customers.length === 0 && (!searchTerm || getFilteredCustomers().length === 0) && (
         <div className="text-center py-12">
           <FaUserPlus className="text-6xl text-gray-300 mx-auto mb-4" />
           <h4 className="text-xl font-semibold text-gray-800 mb-2">No pending registrations</h4>

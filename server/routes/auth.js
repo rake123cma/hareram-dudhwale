@@ -1,11 +1,19 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const passport = require('passport');
 const User = require('../models/User');
 const Customer = require('../models/Customer');
 
 // Temporary OTP storage (in production, use Redis or database)
 const otpStore = new Map();
+
+// Helper function to generate JWT tokens for OAuth users
+const generateOAuthTokens = (user) => {
+  const token = jwt.sign({ id: user._id, role: user.role, customer_id: user.customer_id }, process.env.JWT_SECRET, { expiresIn: '1h' });
+  const refreshToken = jwt.sign({ id: user._id }, process.env.JWT_REFRESH_SECRET, { expiresIn: '7d' });
+  return { token, refreshToken };
+};
 
 const router = express.Router();
 
@@ -170,6 +178,57 @@ router.post('/register-admin', async (req, res) => {
     const user = new User({ username: phone, password: hashedPassword, role: 'customer', customer_id: customer._id });
     await user.save();
     res.status(201).json({ message: 'User registered' });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// Admin registration endpoint
+router.post('/register-admin-user', async (req, res) => {
+  const { username, password, email, name, mobile } = req.body;
+
+  // Validate password complexity
+  const passwordError = validatePassword(password);
+  if (passwordError) {
+    return res.status(400).json({ message: passwordError });
+  }
+
+  try {
+    // Check if admin user already exists
+    const existingUser = await User.findOne({ username });
+    if (existingUser) {
+      return res.status(400).json({ message: 'Admin user already exists with this username' });
+    }
+
+    // Check if email already exists (if provided)
+    if (email) {
+      const existingEmail = await User.findOne({ email });
+      if (existingEmail) {
+        return res.status(400).json({ message: 'User already exists with this email' });
+      }
+    }
+
+    // Create admin user
+    const user = new User({
+      username,
+      password: await bcrypt.hash(password, 10),
+      role: 'admin',
+      email: email || undefined,
+      mobile: mobile || undefined,
+      address: name ? `Admin: ${name}` : undefined
+    });
+
+    await user.save();
+
+    res.status(201).json({ 
+      message: 'Admin user registered successfully',
+      user: { 
+        id: user._id, 
+        username: user.username, 
+        role: user.role,
+        email: user.email
+      }
+    });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
@@ -374,6 +433,40 @@ router.post('/reset-password', async (req, res) => {
   }
 });
 
+// Admin password change (for logged in admins)
+router.post('/change-admin-password', async (req, res) => {
+  const { username, currentPassword, newPassword } = req.body;
+
+  // Validate password complexity
+  const passwordError = validatePassword(newPassword);
+  if (passwordError) {
+    return res.status(400).json({ message: passwordError });
+  }
+
+  try {
+    // Find admin user
+    const user = await User.findOne({ username, role: 'admin' });
+    
+    if (!user) {
+      return res.status(404).json({ message: 'Admin user not found' });
+    }
+
+    // Verify current password
+    const isValidPassword = await bcrypt.compare(currentPassword, user.password);
+    if (!isValidPassword) {
+      return res.status(401).json({ message: 'Current password is incorrect' });
+    }
+
+    // Update password
+    user.password = await bcrypt.hash(newPassword, 10);
+    await user.save();
+
+    res.json({ message: 'Password changed successfully' });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
 // Refresh token endpoint
 router.post('/refresh-token', async (req, res) => {
   const { refreshToken } = req.body;
@@ -401,6 +494,89 @@ router.post('/refresh-token', async (req, res) => {
   } catch (err) {
     res.status(401).json({ message: 'Invalid refresh token' });
   }
+});
+
+// Google OAuth Routes
+
+// Initiate Google OAuth for customers
+router.get('/google', (req, res, next) => {
+  try {
+    console.log('Google OAuth initiation - Environment check:');
+    console.log('GOOGLE_CLIENT_ID:', process.env.GOOGLE_CLIENT_ID ? 'Set' : 'Not set');
+    console.log('GOOGLE_CALLBACK_URL:', process.env.GOOGLE_CALLBACK_URL);
+    
+    // Only allow customer OAuth, not admin
+    req.session = req.session || {};
+    req.session.userType = 'customer';
+    
+    passport.authenticate('google', {
+      scope: ['profile', 'email'],
+      prompt: 'select_account'
+    })(req, res, next);
+  } catch (err) {
+    console.error('Google OAuth initiation error:', err);
+    res.redirect('/login?error=oauth_init_failed');
+  }
+});
+
+// Google OAuth callback
+router.get('/google/callback', 
+  (req, res, next) => {
+    // Add debugging for the authorization code
+    console.log('🔍 OAuth Callback Debug:');
+    console.log('📋 Query params:', req.query);
+    console.log('🔑 Auth code present:', !!req.query.code);
+    console.log('🔑 Code length:', req.query.code ? req.query.code.length : 0);
+    console.log('🎯 State:', req.query.state);
+    
+    // Fix: Decode HTML entities and URL encoding in the authorization code
+    if (req.query.code) {
+      // First decode URL encoding (%2F -> /)
+      req.query.code = decodeURIComponent(req.query.code);
+      // Then decode any remaining HTML entities (&#x2F; -> /)
+      req.query.code = req.query.code.replace(/&#x2F;/g, '/');
+      console.log('🔧 Fixed code:', req.query.code);
+    }
+    
+    // Continue with passport authentication
+    next();
+  },
+  passport.authenticate('google', { 
+    session: false, 
+    failureRedirect: '/login?error=oauth_failed' 
+  }),
+  async (req, res) => {
+    try {
+      const user = req.user;
+      console.log('✅ OAuth Success - User:', user.email);
+      
+      // Generate JWT tokens
+      const { token, refreshToken } = generateOAuthTokens(user);
+      
+      // Create redirect URL with tokens
+      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+      const redirectUrl = `${frontendUrl}/oauth-success?token=${token}&refreshToken=${refreshToken}&user=${encodeURIComponent(JSON.stringify({
+        id: user._id,
+        username: user.username,
+        role: user.role,
+        email: user.email
+      }))}`;
+      
+      console.log('🚀 Redirecting to:', redirectUrl);
+      res.redirect(redirectUrl);
+    } catch (err) {
+      console.error('❌ OAuth callback error:', err);
+      res.redirect('/login?error=oauth_failed');
+    }
+  }
+);
+
+// Check Google OAuth status
+router.get('/google/status', (req, res) => {
+  res.json({ 
+    enabled: !!(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET),
+    configured: !!(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET && process.env.GOOGLE_CALLBACK_URL)
+  });
 });
 
 

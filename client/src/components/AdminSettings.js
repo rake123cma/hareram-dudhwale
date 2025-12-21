@@ -173,9 +173,18 @@ const AdminSettings = () => {
                 {farmImages.slice(0, 4).map((image, index) => (
                   <div key={image._id} className="relative">
                     <img
-                      src={`${image.url}`}
+                      src={image.url.startsWith('/uploads') ? `http://localhost:5000${image.url}` : image.url}
                       alt={image.title || `Farm ${index + 1}`}
                       className="w-full h-24 object-cover rounded-lg border border-secondary-600"
+                      onError={(e) => {
+                        // Hide image if it fails to load
+                        e.target.style.display = 'none';
+                        // Show placeholder
+                        const placeholder = document.createElement('div');
+                        placeholder.className = 'w-full h-24 bg-secondary-600 rounded-lg border border-secondary-600 flex items-center justify-center';
+                        placeholder.innerHTML = '<span class="text-secondary-400 text-xs">Image not found</span>';
+                        e.target.parentNode.appendChild(placeholder);
+                      }}
                     />
                     <button
                       onClick={() => handleImageDelete(image._id)}

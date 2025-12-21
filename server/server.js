@@ -99,11 +99,12 @@ app.use(sanitizeInput);
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ limit: '10mb', extended: true }));
 
-// Passport configuration (removed - no OAuth configured)
-// require('./config/passport');
+// Passport configuration
+require('./config/passport');
+const passport = require('passport');
 
-// Passport middleware (removed - no OAuth configured)
-// app.use(passport.initialize());
+// Passport middleware
+app.use(passport.initialize());
 
 // CSRF protection for authenticated routes (temporarily disabled for testing)
 // app.use('/api', addCSRFToken);
@@ -150,7 +151,7 @@ const upload = multer({
 });
 
 // Serve uploaded files
-app.use('/uploads', express.static('uploads'));
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Import models to register them with Mongoose
 require('./models/Category');

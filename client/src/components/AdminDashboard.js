@@ -1,18 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import Swal from 'sweetalert2';
-import { FaPlus, FaEye, FaEdit, FaTrash, FaRupeeSign, FaChartLine, FaUsers, FaFileInvoice, FaShoppingCart, FaUser, FaTimesCircle, FaWallet, FaCheck, FaBox, FaCalendarCheck, FaStar, FaSyringe, FaBaby, FaPills, FaChevronRight, FaChevronDown, FaBars } from 'react-icons/fa';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { FaPlus, FaEye, FaEdit, FaTrash, FaRupeeSign, FaChartLine, FaUser, FaTimesCircle, FaWallet, FaCheck, FaCalendarCheck, FaStar, FaSyringe, FaBaby, FaPills } from 'react-icons/fa';
 import { GiMilkCarton } from 'react-icons/gi';
-import ProductsList from './ProductsList';
-import SpecialReservationsManagement from './SpecialReservationsManagement';
+
 import InseminationForm from './InseminationForm';
 import CalvingForm from './CalvingForm';
 import DewormingForm from './DewormingForm';
 
 const AdminDashboard = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('overview');
-  const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [cattleMenuOpen, setCattleMenuOpen] = useState(true);
   const [cows, setCows] = useState([]);
   const [stats, setStats] = useState({
     totalCattle: 0,
@@ -46,7 +46,31 @@ const AdminDashboard = () => {
     fetchPaymentSettings();
     fetchPendingPayments();
     fetchReviews();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    
+    // Set active tab based on current URL
+    const path = location.pathname;
+    if (path === '/admin' || path === '/admin/') {
+      setActiveTab('overview');
+    } else if (path === '/admin/overview') {
+      setActiveTab('overview');
+    } else if (path === '/admin/livestock') {
+      setActiveTab('cows');
+    } else if (path === '/admin/payments') {
+      setActiveTab('payments');
+    } else if (path === '/admin/reviews') {
+      setActiveTab('reviews');
+    } else if (path === '/admin/record-update') {
+      setActiveTab('records');
+    } else if (path === '/admin/cattle-reports') {
+      setActiveTab('reports');
+    }
+  }, [location.pathname]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleTabChange = (tab, route) => {
+    setActiveTab(tab);
+    navigate(route);
+  };
 
   const fetchDashboardData = async () => {
     try {
@@ -181,7 +205,7 @@ const AdminDashboard = () => {
         health_summary: cowForm.health_summary || ''
       };
 
-      console.log('Sending cattle data:', cowData);
+      // Sending cattle data
 
       if (editingCow) {
         // Update existing livestock
@@ -190,7 +214,7 @@ const AdminDashboard = () => {
       } else {
         // Create new livestock
         const response = await axios.post('/api/cows', cowData, config);
-        console.log('Livestock created:', response.data);
+        // Livestock created
         Swal.fire('Success', 'Cattle added successfully!', 'success');
       }
 
@@ -204,13 +228,7 @@ const AdminDashboard = () => {
     }
   };
 
-  const handleCrossingClick = (cow) => {
-    setCrossingCow(cow);
-    setCrossingData({
-      last_insemination_date: cow.last_insemination_date ? new Date(cow.last_insemination_date).toISOString().split('T')[0] : ''
-    });
-    setShowCrossingForm(true);
-  };
+
 
   const handleCrossingSubmit = async (e) => {
     e.preventDefault();
@@ -420,10 +438,10 @@ const AdminDashboard = () => {
           <button onClick={() => setShowCowForm(true)} className="bg-accent-blue text-white border-none px-5 py-3 rounded-lg cursor-pointer flex items-center gap-2 text-sm transition-all duration-300 hover:bg-accent-blue-dark">
             <FaPlus /> Add Cattle
           </button>
-          <button onClick={() => setActiveTab('cows')} className="bg-secondary-600 text-white border-none px-5 py-3 rounded-lg cursor-pointer flex items-center gap-2 text-sm transition-all duration-300 hover:bg-secondary-500">
+          <button onClick={() => handleTabChange('cows', '/admin/livestock')} className="bg-secondary-600 text-white border-none px-5 py-3 rounded-lg cursor-pointer flex items-center gap-2 text-sm transition-all duration-300 hover:bg-secondary-500">
             <FaUser /> Manage Cattle
           </button>
-          <button onClick={() => setActiveTab('records')} className="bg-secondary-600 text-white border-none px-5 py-3 rounded-lg cursor-pointer flex items-center gap-2 text-sm transition-all duration-300 hover:bg-secondary-500">
+          <button onClick={() => handleTabChange('records', '/admin/record-update')} className="bg-secondary-600 text-white border-none px-5 py-3 rounded-lg cursor-pointer flex items-center gap-2 text-sm transition-all duration-300 hover:bg-secondary-500">
             <FaEdit /> Record Management
           </button>
         </div>
@@ -595,29 +613,12 @@ const AdminDashboard = () => {
     </div>
   );
 
-  const [milkRecords, setMilkRecords] = useState([]);
-  const [showMilkForm, setShowMilkForm] = useState(false);
-  const [milkData, setMilkData] = useState({
-    date: new Date().toISOString().split('T')[0],
-    cow_id: '',
-    morning_liters: '',
-    morning_fat: '',
-    morning_snf: '',
-    evening_liters: '',
-    evening_fat: '',
-    evening_snf: '',
-    milk_rate: '',
-    notes: ''
-  });
-  const [expenses, setExpenses] = useState([]);
-  const [showExpenseForm, setShowExpenseForm] = useState(false);
-  const [expenseData, setExpenseData] = useState({
-    date: new Date().toISOString().split('T')[0],
-    category: '',
-    amount: '',
-    description: '',
-    cow_id: ''
-  });
+
+
+
+
+
+
   const [sicknessData, setSicknessData] = useState({
     date: new Date().toISOString().split('T')[0],
     condition: '',
@@ -650,8 +651,7 @@ const AdminDashboard = () => {
   const [showPaymentSettingsForm, setShowPaymentSettingsForm] = useState(false);
   const [pendingPayments, setPendingPayments] = useState([]);
   const [reviews, setReviews] = useState([]);
-  const [selectedReportCow, setSelectedReportCow] = useState('');
-  const [selectedReportType, setSelectedReportType] = useState('');
+
 
 
   const renderCows = () => (
@@ -854,414 +854,21 @@ const AdminDashboard = () => {
   };
 
 
-  const handleMilkSubmit = async (e) => {
-    e.preventDefault();
-    try {
-      const token = localStorage.getItem('token');
-      const config = { headers: { Authorization: `Bearer ${token}` } };
 
-      await axios.post('/api/milk-records', milkData, config);
 
-      Swal.fire('Success', 'Milk record added successfully!', 'success');
-      setShowMilkForm(false);
-      setMilkData({
-        date: new Date().toISOString().split('T')[0],
-        cow_id: '',
-        morning_liters: '',
-        morning_fat: '',
-        morning_snf: '',
-        evening_liters: '',
-        evening_fat: '',
-        evening_snf: '',
-        milk_rate: '',
-        notes: ''
-      });
-      fetchMilkRecords();
-    } catch (err) {
-      Swal.fire('Error', 'Failed to add milk record', 'error');
-    }
-  };
 
-  const fetchMilkRecords = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      const config = { headers: { Authorization: `Bearer ${token}` } };
 
-      const response = await axios.get('/api/milk-records', config);
-      setMilkRecords(response.data);
-    } catch (err) {
-      console.log('Failed to fetch milk records');
-    }
-  };
 
-  const renderMilkRecords = () => (
-    <div className="bg-primary-700 rounded-lg p-6 mb-5 border border-secondary-700">
-      <div className="flex items-center justify-between mb-5">
-        <h3 className="bg-gradient-to-r from-accent-blue to-accent-green bg-clip-text text-transparent mb-0 flex items-center gap-3">
-          <GiMilkCarton className="text-accent-blue text-xl" />
-          Milk Production Records
-        </h3>
-        <button onClick={() => setShowMilkForm(true)} className="bg-accent-blue text-white border-none px-4 py-2 rounded cursor-pointer flex items-center gap-2 text-sm hover:bg-accent-blue-dark">
-          <FaPlus /> Add Record
-        </button>
-      </div>
 
-      <div className="space-y-4">
-        {milkRecords.length > 0 ? (
-          milkRecords.map(record => (
-            <div key={record._id} className="bg-primary-800 border border-secondary-700 rounded-lg p-6">
-              <div className="flex justify-between items-center mb-4">
-                <h4 className="text-white text-xl font-bold">{record.cow_id?.listing_id} - {new Date(record.date).toLocaleDateString()}</h4>
-                <span className="text-accent-green text-lg font-bold">{record.total_daily_liters} L</span>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="bg-primary-900 p-4 rounded-lg border border-secondary-600">
-                  <h5 className="text-white text-lg font-semibold mb-3">Morning Session</h5>
-                  <div className="space-y-1">
-                    <p className="text-secondary-300 m-0">Liters: {record.morning_liters || 0}</p>
-                    <p className="text-secondary-300 m-0">Fat: {record.morning_fat || 0}%</p>
-                    <p className="text-secondary-300 m-0">SNF: {record.morning_snf || 0}%</p>
-                  </div>
-                </div>
-                <div className="bg-primary-900 p-4 rounded-lg border border-secondary-600">
-                  <h5 className="text-white text-lg font-semibold mb-3">Evening Session</h5>
-                  <div className="space-y-1">
-                    <p className="text-secondary-300 m-0">Liters: {record.evening_liters || 0}</p>
-                    <p className="text-secondary-300 m-0">Fat: {record.evening_fat || 0}%</p>
-                    <p className="text-secondary-300 m-0">SNF: {record.evening_snf || 0}%</p>
-                  </div>
-                </div>
-                <div className="bg-primary-900 p-4 rounded-lg border border-secondary-600">
-                  <h5 className="text-white text-lg font-semibold mb-3">Daily Summary</h5>
-                  <div className="space-y-1">
-                    <p className="text-secondary-300 m-0"><strong className="text-white">Avg Fat:</strong> {record.average_fat?.toFixed(1)}%</p>
-                    <p className="text-secondary-300 m-0"><strong className="text-white">Avg SNF:</strong> {record.average_snf?.toFixed(1)}%</p>
-                    <p className="text-secondary-300 m-0"><strong className="text-white">Revenue:</strong> ₹{record.daily_revenue?.toFixed(2)}</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          ))
-        ) : (
-          <div className="text-center py-12 bg-primary-800 border-2 border-dashed border-secondary-600 rounded-lg">
-            <GiMilkCarton className="text-accent-blue text-6xl mx-auto mb-4" />
-            <h4 className="text-white text-xl mb-2">No milk records yet</h4>
-            <p className="text-secondary-400">Start recording daily milk production.</p>
-          </div>
-        )}
-      </div>
-    </div>
-  );
 
-  const renderMilkForm = () => {
-    const selectedCow = cows.find(c => c._id === milkData.cow_id);
-    return (
-      <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 p-4">
-        <div className="bg-primary-700 rounded-xl w-full max-w-4xl max-h-[90vh] overflow-hidden border border-secondary-700 shadow-2xl">
-          <div className="flex justify-between items-center p-6 border-b border-secondary-700">
-            <h3 className="text-white m-0 text-lg font-semibold">
-              {selectedCow ? `${selectedCow.name} (${selectedCow.listing_id}) - दूध रिकॉर्ड` : 'दूध रिकॉर्ड जोड़ें'}
-            </h3>
-            <button onClick={() => setShowMilkForm(false)} className="bg-secondary-600 hover:bg-secondary-500 text-white text-xl cursor-pointer p-2 w-10 h-10 flex items-center justify-center rounded-lg transition-colors duration-200">×</button>
-          </div>
-          <div className="overflow-y-auto max-h-[calc(90vh-120px)] p-6">
-            <form onSubmit={handleMilkSubmit} className="space-y-6">
-              <div className="p-5 bg-primary-800 rounded-lg border border-secondary-700">
-                <h4 className="text-white m-0 mb-4 text-base font-semibold">दूध उत्पादन जानकारी</h4>
-                <div className="mb-4">
-                  <label className="block text-white mb-2 text-sm font-medium">तारीख *</label>
-                  <input
-                    type="date"
-                    value={milkData.date}
-                    onChange={(e) => setMilkData({...milkData, date: e.target.value})}
-                    className="w-full p-3 bg-primary-800 border border-secondary-600 rounded-lg text-white text-sm focus:outline-none focus:border-accent-blue focus:ring-2 focus:ring-accent-blue/20 transition-all duration-200"
-                    required
-                  />
-                </div>
-              </div>
 
-              <div className="p-5 bg-primary-800 rounded-lg border border-secondary-700">
-                <h4 className="text-white m-0 mb-4 text-base font-semibold">सुबह सत्र</h4>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div>
-                    <label className="block text-white mb-2 text-sm font-medium">लीटर</label>
-                    <input
-                      type="number"
-                      step="0.1"
-                      value={milkData.morning_liters}
-                      onChange={(e) => setMilkData({...milkData, morning_liters: e.target.value})}
-                      className="w-full p-3 bg-primary-800 border border-secondary-600 rounded-lg text-white text-sm focus:outline-none focus:border-accent-blue focus:ring-2 focus:ring-accent-blue/20 transition-all duration-200"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-white mb-2 text-sm font-medium">फैट (%)</label>
-                    <input
-                      type="number"
-                      step="0.1"
-                      value={milkData.morning_fat}
-                      onChange={(e) => setMilkData({...milkData, morning_fat: e.target.value})}
-                      className="w-full p-3 bg-primary-800 border border-secondary-600 rounded-lg text-white text-sm focus:outline-none focus:border-accent-blue focus:ring-2 focus:ring-accent-blue/20 transition-all duration-200"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-white mb-2 text-sm font-medium">एसएनएफ (%)</label>
-                    <input
-                      type="number"
-                      step="0.1"
-                      value={milkData.morning_snf}
-                      onChange={(e) => setMilkData({...milkData, morning_snf: e.target.value})}
-                      className="w-full p-3 bg-primary-800 border border-secondary-600 rounded-lg text-white text-sm focus:outline-none focus:border-accent-blue focus:ring-2 focus:ring-accent-blue/20 transition-all duration-200"
-                    />
-                  </div>
-                </div>
-              </div>
 
-              <div className="p-5 bg-primary-800 rounded-lg border border-secondary-700">
-                <h4 className="text-white m-0 mb-4 text-base font-semibold">शाम सत्र</h4>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div>
-                    <label className="block text-white mb-2 text-sm font-medium">लीटर</label>
-                    <input
-                      type="number"
-                      step="0.1"
-                      value={milkData.evening_liters}
-                      onChange={(e) => setMilkData({...milkData, evening_liters: e.target.value})}
-                      className="w-full p-3 bg-primary-800 border border-secondary-600 rounded-lg text-white text-sm focus:outline-none focus:border-accent-blue focus:ring-2 focus:ring-accent-blue/20 transition-all duration-200"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-white mb-2 text-sm font-medium">फैट (%)</label>
-                    <input
-                      type="number"
-                      step="0.1"
-                      value={milkData.evening_fat}
-                      onChange={(e) => setMilkData({...milkData, evening_fat: e.target.value})}
-                      className="w-full p-3 bg-primary-800 border border-secondary-600 rounded-lg text-white text-sm focus:outline-none focus:border-accent-blue focus:ring-2 focus:ring-accent-blue/20 transition-all duration-200"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-white mb-2 text-sm font-medium">एसएनएफ (%)</label>
-                    <input
-                      type="number"
-                      step="0.1"
-                      value={milkData.evening_snf}
-                      onChange={(e) => setMilkData({...milkData, evening_snf: e.target.value})}
-                      className="w-full p-3 bg-primary-800 border border-secondary-600 rounded-lg text-white text-sm focus:outline-none focus:border-accent-blue focus:ring-2 focus:ring-accent-blue/20 transition-all duration-200"
-                    />
-                  </div>
-                </div>
-              </div>
 
-              <div className="p-5 bg-primary-800 rounded-lg border border-secondary-700">
-                <h4 className="text-white m-0 mb-4 text-base font-semibold">मूल्य निर्धारण और नोट्स</h4>
-                <div className="mb-4">
-                  <label className="block text-white mb-2 text-sm font-medium">दूध दर (₹/लीटर)</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={milkData.milk_rate}
-                    onChange={(e) => setMilkData({...milkData, milk_rate: e.target.value})}
-                    className="w-full p-3 bg-primary-800 border border-secondary-600 rounded-lg text-white text-sm focus:outline-none focus:border-accent-blue focus:ring-2 focus:ring-accent-blue/20 transition-all duration-200"
-                  />
-                </div>
-                <div>
-                  <label className="block text-white mb-2 text-sm font-medium">नोट्स</label>
-                  <textarea
-                    value={milkData.notes}
-                    onChange={(e) => setMilkData({...milkData, notes: e.target.value})}
-                    rows="4"
-                    className="w-full p-3 bg-primary-800 border border-secondary-600 rounded-lg text-white text-sm focus:outline-none focus:border-accent-blue focus:ring-2 focus:ring-accent-blue/20 transition-all duration-200 resize-vertical"
-                  />
-                </div>
-              </div>
 
-              <div className="flex flex-col sm:flex-row gap-4 sm:justify-end pt-6 border-t border-secondary-700">
-                <button type="button" onClick={() => setShowMilkForm(false)} className="w-full sm:w-48 h-12 bg-secondary-600 hover:bg-secondary-500 text-white font-semibold rounded-xl border border-secondary-500 transition-all duration-300 shadow-md hover:shadow-lg transform hover:-translate-y-0.5">
-                  रद्द करें
-                </button>
-                <button type="submit" className="w-full sm:w-48 h-12 bg-gradient-to-r from-accent-blue to-accent-blue-dark hover:from-accent-blue-dark hover:to-accent-blue text-white font-semibold rounded-xl border border-accent-blue transition-all duration-300 shadow-md hover:shadow-lg transform hover:-translate-y-0.5">
-                  रिकॉर्ड सेव करें
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      </div>
-    );
-  };
 
-  const handleExpenseSubmit = async (e) => {
-    e.preventDefault();
-    try {
-      const token = localStorage.getItem('token');
-      const config = { headers: { Authorization: `Bearer ${token}` } };
 
-      await axios.post('/api/expenses', expenseData, config);
 
-      Swal.fire('Success', 'Expense record added successfully!', 'success');
-      setShowExpenseForm(false);
-      setExpenseData({
-        date: new Date().toISOString().split('T')[0],
-        category: '',
-        amount: '',
-        description: '',
-        cow_id: ''
-      });
-      fetchExpenses();
-    } catch (err) {
-      Swal.fire('Error', 'Failed to add expense record', 'error');
-    }
-  };
 
-  const fetchExpenses = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      const config = { headers: { Authorization: `Bearer ${token}` } };
-
-      const response = await axios.get('/api/expenses', config);
-      setExpenses(response.data);
-    } catch (err) {
-      console.log('Failed to fetch expenses');
-    }
-  };
-
-  const renderExpenses = () => (
-    <div className="bg-primary-700 rounded-lg p-6 mb-5 border border-secondary-700">
-      <div className="flex items-center justify-between mb-5">
-        <h3 className="bg-gradient-to-r from-accent-blue to-accent-green bg-clip-text text-transparent mb-0 flex items-center gap-3">
-          <FaFileInvoice className="text-accent-blue text-xl" />
-          Expense Management
-        </h3>
-        <button onClick={() => setShowExpenseForm(true)} className="bg-accent-blue text-white border-none px-4 py-2 rounded cursor-pointer flex items-center gap-2 text-sm hover:bg-accent-blue-dark">
-          <FaPlus /> Add Expense
-        </button>
-      </div>
-
-      <div className="space-y-4">
-        {expenses.length > 0 ? (
-          expenses.map(expense => (
-            <div key={expense._id} className="bg-primary-800 border border-secondary-700 rounded-lg p-6">
-              <div className="flex justify-between items-center mb-4">
-                <h4 className="text-white text-xl font-bold">{expense.category}</h4>
-                <span className="text-accent-green text-lg font-bold">₹{expense.amount?.toLocaleString()}</span>
-              </div>
-              <div className="space-y-2">
-                <p className="text-secondary-300 m-0"><strong className="text-white">Date:</strong> {new Date(expense.date).toLocaleDateString()}</p>
-                <p className="text-secondary-300 m-0"><strong className="text-white">Description:</strong> {expense.description}</p>
-                {expense.cow_id && (
-                  <p className="text-secondary-300 m-0"><strong className="text-white">Cow:</strong> {expense.cow_id.listing_id} - {expense.cow_id.breed}</p>
-                )}
-              </div>
-            </div>
-          ))
-        ) : (
-          <div className="text-center py-12 bg-primary-800 border-2 border-dashed border-secondary-600 rounded-lg">
-            <FaFileInvoice className="text-accent-blue text-6xl mx-auto mb-4" />
-            <h4 className="text-white text-xl mb-2">No expenses recorded yet</h4>
-            <p className="text-secondary-400">Start tracking your operational expenses.</p>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-
-  const renderExpenseForm = () => (
-    <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 p-4">
-      <div className="bg-primary-700 rounded-xl w-full max-w-4xl max-h-[90vh] overflow-hidden border border-secondary-700 shadow-2xl">
-        <div className="flex justify-between items-center p-6 border-b border-secondary-700">
-          <h3 className="text-white m-0 text-lg font-semibold">Add Expense Record</h3>
-          <button onClick={() => setShowExpenseForm(false)} className="bg-secondary-600 hover:bg-secondary-500 text-white text-xl cursor-pointer p-2 w-10 h-10 flex items-center justify-center rounded-lg transition-colors duration-200">×</button>
-        </div>
-        <div className="overflow-y-auto max-h-[calc(90vh-140px)] p-6">
-          <form onSubmit={handleExpenseSubmit} className="space-y-6">
-            <div className="p-5 bg-primary-800 rounded-lg border border-secondary-700">
-              <h4 className="text-white m-0 mb-4 text-base font-semibold">Expense Details</h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                <div>
-                  <label className="block text-white mb-2 text-sm font-medium">Date *</label>
-                  <input
-                    type="date"
-                    value={expenseData.date}
-                    onChange={(e) => setExpenseData({...expenseData, date: e.target.value})}
-                    className="w-full p-3 bg-primary-800 border border-secondary-600 rounded-lg text-white text-sm focus:outline-none focus:border-accent-blue focus:ring-2 focus:ring-accent-blue/20 transition-all duration-200"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-white mb-2 text-sm font-medium">Category *</label>
-                  <select
-                    value={expenseData.category}
-                    onChange={(e) => setExpenseData({...expenseData, category: e.target.value})}
-                    className="w-full p-3 bg-primary-800 border border-secondary-600 rounded-lg text-white text-sm focus:outline-none focus:border-accent-blue focus:ring-2 focus:ring-accent-blue/20 transition-all duration-200"
-                    required
-                  >
-                    <option value="">Select Category</option>
-                    <option value="feed">Feed</option>
-                    <option value="medicine">Medicine</option>
-                    <option value="vet">Vet</option>
-                    <option value="electricity">Electricity</option>
-                    <option value="labour">Labour</option>
-                    <option value="insurance">Insurance</option>
-                    <option value="transport">Transport</option>
-                    <option value="maintenance">Maintenance</option>
-                    <option value="misc">Miscellaneous</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                <div>
-                  <label className="block text-white mb-2 text-sm font-medium">Amount (₹) *</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={expenseData.amount}
-                    onChange={(e) => setExpenseData({...expenseData, amount: e.target.value})}
-                    className="w-full p-3 bg-primary-800 border border-secondary-600 rounded-lg text-white text-sm focus:outline-none focus:border-accent-blue focus:ring-2 focus:ring-accent-blue/20 transition-all duration-200"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-white mb-2 text-sm font-medium">Related Cow (Optional)</label>
-                  <select
-                    value={expenseData.cow_id}
-                    onChange={(e) => setExpenseData({...expenseData, cow_id: e.target.value})}
-                    className="w-full p-3 bg-primary-800 border border-secondary-600 rounded-lg text-white text-sm focus:outline-none focus:border-accent-blue focus:ring-2 focus:ring-accent-blue/20 transition-all duration-200"
-                  >
-                    <option value="">General Expense</option>
-                    {cows.filter(cow => cow.status === 'active').map(cow => (
-                      <option key={cow._id} value={cow._id}>
-                        {cow.listing_id} - {cow.breed}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-white mb-2 text-sm font-medium">Description</label>
-                <textarea
-                  value={expenseData.description}
-                  onChange={(e) => setExpenseData({...expenseData, description: e.target.value})}
-                  rows="4"
-                  className="w-full p-3 bg-primary-800 border border-secondary-600 rounded-lg text-white text-sm focus:outline-none focus:border-accent-blue focus:ring-2 focus:ring-accent-blue/20 transition-all duration-200 resize-vertical"
-                />
-              </div>
-            </div>
-
-            <div className="flex flex-col sm:flex-row gap-4 sm:justify-end pt-6 border-t border-secondary-700">
-              <button type="button" onClick={() => setShowExpenseForm(false)} className="w-full sm:w-48 h-12 bg-secondary-600 hover:bg-secondary-500 text-white font-semibold rounded-xl border border-secondary-500 transition-all duration-300 shadow-md hover:shadow-lg transform hover:-translate-y-0.5">
-                Cancel
-              </button>
-              <button type="submit" className="w-full sm:w-48 h-12 bg-gradient-to-r from-accent-blue to-accent-blue-dark hover:from-accent-blue-dark hover:to-accent-blue text-white font-semibold rounded-xl border border-accent-blue transition-all duration-300 shadow-md hover:shadow-lg transform hover:-translate-y-0.5">
-                Save Expense
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
-    </div>
-  );
 
 
   const handleSicknessSubmit = async (e) => {
@@ -1311,170 +918,11 @@ const AdminDashboard = () => {
     }
   };
 
-  const renderHealth = () => (
-    <div className="bg-primary-700 rounded-lg p-6 mb-5 border border-secondary-700">
-      <div className="flex items-center justify-between mb-5">
-        <h3 className="bg-gradient-to-r from-purple-400 via-pink-500 to-yellow-400 bg-clip-text text-transparent mb-0 flex items-center gap-3">
-          <FaUser className="text-accent-blue text-xl" />
-          Cow Health Management
-        </h3>
-      </div>
 
-      <div className="flex gap-3 flex-wrap mb-8">
-        <button onClick={() => setShowSicknessForm(true)} className="bg-accent-blue text-white border-none px-4 py-2 rounded cursor-pointer flex items-center gap-2 text-sm hover:bg-accent-blue-dark">
-          <FaPlus /> Report Sickness
-        </button>
-        <button onClick={() => setShowPregnancyForm(true)} className="bg-secondary-600 text-white border-none px-4 py-2 rounded cursor-pointer flex items-center gap-2 text-sm hover:bg-secondary-500">
-          <FaPlus /> Report Pregnancy
-        </button>
-      </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-5 mb-8">
-          <div className="bg-primary-800 p-5 rounded-lg border border-secondary-700 flex items-center gap-4">
-            <div className="text-accent-green bg-accent-green-light p-3 rounded-lg text-2xl">
-              <FaUser />
-            </div>
-            <div className="flex flex-col">
-              <h4 className="m-0 mb-2 text-white text-sm">Healthy Cows</h4>
-              <p className="text-2xl font-bold text-accent-green m-0">{cows.filter(cow => cow.status === 'active').length}</p>
-            </div>
-          </div>
-        <div className="bg-primary-800 p-5 rounded-lg border border-secondary-700 flex items-center gap-4">
-          <div className="text-red-500 bg-red-100 p-3 rounded-lg text-2xl">
-            <FaUser />
-          </div>
-          <div className="flex flex-col">
-            <h4 className="m-0 mb-2 text-white text-sm">Sick Cows</h4>
-            <p className="text-2xl font-bold text-red-500 m-0">{cows.filter(cow => cow.status === 'sick').length}</p>
-          </div>
-        </div>
-        <div className="bg-primary-800 p-5 rounded-lg border border-secondary-700 flex items-center gap-4">
-          <div className="text-accent-blue bg-accent-blue-light p-3 rounded-lg text-2xl">
-            <FaChartLine />
-          </div>
-          <div className="flex flex-col">
-            <h4 className="m-0 mb-2 text-white text-sm">Pregnant Cows</h4>
-            <p className="text-2xl font-bold text-accent-blue m-0">{cows.filter(cow => cow.status === 'pregnant').length}</p>
-          </div>
-        </div>
-        <div className="bg-primary-800 p-5 rounded-lg border border-secondary-700 flex items-center gap-4">
-          <div className="text-yellow-500 bg-yellow-100 p-3 rounded-lg text-2xl">
-            <FaTimesCircle />
-          </div>
-          <div className="flex flex-col">
-            <h4 className="m-0 mb-2 text-white text-sm">Dry Cows</h4>
-            <p className="text-2xl font-bold text-yellow-500 m-0">{cows.filter(cow => cow.status === 'dry').length}</p>
-          </div>
-        </div>
-      </div>
 
-      <div className="mb-6">
-        <h4 className="text-white mb-4 text-lg">Cows Needing Attention</h4>
-        <div className="mb-6">
-          <button onClick={() => setShowDryCowForm(true)} className="bg-secondary-600 text-white border-none px-4 py-2 rounded cursor-pointer flex items-center gap-2 text-sm hover:bg-secondary-500">
-            <FaTimesCircle /> Mark Cow as Dry
-          </button>
-        </div>
-        {cows.filter(cow => cow.status === 'sick' || cow.status === 'pregnant' || cow.status === 'dry').length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {cows.filter(cow => cow.status === 'sick' || cow.status === 'pregnant').map(cow => (
-              <div key={cow._id} className="bg-primary-800 border border-secondary-700 rounded-lg p-5">
-                <div className="flex justify-between items-center mb-4">
-                  <h4 className="text-white m-0">{cow.listing_id}</h4>
-                  <span className={`px-2 py-1 rounded text-xs font-semibold ${
-                    cow.status === 'sick' ? 'bg-red-500 text-white' :
-                    cow.status === 'pregnant' ? 'bg-accent-blue text-white' :
-                    'bg-yellow-500 text-black'
-                  }`}>{cow.status}</span>
-                </div>
-                <div className="space-y-2 mb-4">
-                  <p className="text-secondary-300 m-0"><strong className="text-white">Breed:</strong> {cow.breed}</p>
-                  <p className="text-secondary-300 m-0"><strong className="text-white">Status:</strong> {cow.status}</p>
-                  {cow.sickness_records && cow.sickness_records.length > 0 && (
-                    <p className="text-secondary-300 m-0"><strong className="text-white">Last Issue:</strong> {cow.sickness_records[cow.sickness_records.length - 1].condition}</p>
-                  )}
-                  {cow.investor_id && (
-                    <p className="text-secondary-300 m-0"><strong className="text-white">Investor:</strong> {cow.investor_id.name}</p>
-                  )}
-                </div>
-                <div className="flex gap-2">
-                  <button className="bg-secondary-600 text-white border-none px-3 py-2 rounded cursor-pointer flex items-center gap-1 text-xs hover:bg-secondary-500 flex-1" onClick={() => viewCowHealth(cow)}>
-                    <FaEye /> View Health
-                  </button>
-                  {cow.status === 'sick' && (
-                    <button className="bg-accent-green text-white border-none px-3 py-2 rounded cursor-pointer flex items-center gap-1 text-xs hover:bg-accent-green-dark flex-1" onClick={() => markCowRecovered(cow._id)}>
-                      Mark Recovered
-                    </button>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="text-center py-12">
-            <FaUser className="text-accent-green text-6xl mx-auto mb-4" />
-            <h4 className="text-white text-xl mb-2">All cows are healthy</h4>
-            <p className="text-secondary-400">No health issues to report.</p>
-          </div>
-        )}
-      </div>
-    </div>
-  );
 
-  const viewCowHealth = (cow) => {
-    const healthInfo = `
-      <div style="text-align: left;">
-        <p><strong>Cow:</strong> ${cow.listing_id} - ${cow.breed}</p>
-        <p><strong>Status:</strong> ${cow.status}</p>
-        <p><strong>Health Summary:</strong> ${cow.health_summary}</p>
-        ${cow.sickness_records && cow.sickness_records.length > 0 ? `
-          <h4>Sickness Records:</h4>
-          ${cow.sickness_records.map(record => `
-            <div style="border-left: 3px solid #ef4444; padding-left: 10px; margin: 10px 0;">
-              <p><strong>Date:</strong> ${new Date(record.date).toLocaleDateString()}</p>
-              <p><strong>Condition:</strong> ${record.condition}</p>
-              <p><strong>Treatment:</strong> ${record.treatment}</p>
-              <p><strong>Cost:</strong> ₹${record.cost}</p>
-              <p><strong>Notes:</strong> ${record.notes}</p>
-            </div>
-          `).join('')}
-        ` : '<p>No sickness records</p>'}
-      </div>
-    `;
 
-    Swal.fire({
-      title: 'Cow Health Details',
-      html: healthInfo,
-      width: 600,
-      confirmButtonText: 'Close'
-    });
-  };
-
-  const markCowRecovered = async (cowId) => {
-    const result = await Swal.fire({
-      title: 'Mark Cow as Recovered?',
-      text: 'This will update the cow status to active',
-      icon: 'question',
-      showCancelButton: true,
-      confirmButtonText: 'Yes, recovered'
-    });
-
-    if (result.isConfirmed) {
-      try {
-        const token = localStorage.getItem('token');
-        const config = { headers: { Authorization: `Bearer ${token}` } };
-
-        await axios.patch(`/api/cows/${cowId}/status`, {
-          status: 'active'
-        }, config);
-
-        Swal.fire('Success', 'Cow marked as recovered!', 'success');
-        fetchDashboardData();
-      } catch (err) {
-        Swal.fire('Error', 'Failed to update cow status', 'error');
-      }
-    }
-  };
 
   const handlePregnancySubmit = async (e) => {
     e.preventDefault();
@@ -1785,60 +1233,9 @@ const AdminDashboard = () => {
             </div>
           </button>
 
-          {/* Milk Record */}
-          <button
-            onClick={() => {
-              if (!selectedCowForRecords) {
-                Swal.fire('त्रुटि', 'कृपया पहले गाय/भैंस चुनें', 'error');
-                return;
-              }
-              setMilkData({
-                date: new Date().toISOString().split('T')[0],
-                cow_id: selectedCowForRecords,
-                morning_liters: '',
-                morning_fat: '',
-                morning_snf: '',
-                evening_liters: '',
-                evening_fat: '',
-                evening_snf: '',
-                milk_rate: '',
-                notes: ''
-              });
-              setShowMilkForm(true);
-            }}
-            className="bg-blue-600 hover:bg-blue-700 text-white border-none px-6 py-4 rounded-lg cursor-pointer flex items-center gap-3 text-sm transition-all duration-300 shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
-          >
-            <GiMilkCarton className="text-xl" />
-            <div className="text-left">
-              <div className="font-semibold">दूध रिकॉर्ड</div>
-              <div className="text-xs opacity-80">दैनिक दूध उत्पादन</div>
-            </div>
-          </button>
 
-          {/* Expense Record */}
-          <button
-            onClick={() => {
-              if (!selectedCowForRecords) {
-                Swal.fire('त्रुटि', 'कृपया पहले गाय/भैंस चुनें', 'error');
-                return;
-              }
-              setExpenseData({
-                date: new Date().toISOString().split('T')[0],
-                category: '',
-                amount: '',
-                description: '',
-                cow_id: selectedCowForRecords
-              });
-              setShowExpenseForm(true);
-            }}
-            className="bg-red-600 hover:bg-red-700 text-white border-none px-6 py-4 rounded-lg cursor-pointer flex items-center gap-3 text-sm transition-all duration-300 shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
-          >
-            <FaRupeeSign className="text-xl" />
-            <div className="text-left">
-              <div className="font-semibold">खर्च रिकॉर्ड</div>
-              <div className="text-xs opacity-80">दैनिक खर्च जोड़ें</div>
-            </div>
-          </button>
+
+
 
           {/* Sickness Record */}
           <button
@@ -2413,8 +1810,8 @@ const AdminDashboard = () => {
 
         const rows = data.map(record => `
           <tr style="border-bottom: 1px solid #374151;">
-            ${showCowName ? `<td style="padding: 8px; color: #e5e7eb;">${record.cow_name || 'Unknown'}</td>` : ''}
-            ${fields.map(field => `<td style="padding: 8px; color: #e5e7eb;">${formatFieldValue(record[field.key])}</td>`).join('')}
+            ${showCowName ? `<td style="padding: 8px; color: #000000;">${record.cow_name || 'Unknown'}</td>` : ''}
+            ${fields.map(field => `<td style="padding: 8px; color: #000000;">${formatFieldValue(record[field.key])}</td>`).join('')}
           </tr>
         `).join('');
 
@@ -2991,141 +2388,21 @@ const AdminDashboard = () => {
 
 
   return (
-    <div className="min-h-screen bg-primary-900 flex">
-      {/* Sidebar */}
-      <div className={`${sidebarOpen ? 'w-80' : 'w-16'} bg-primary-800 border-r border-secondary-700 transition-all duration-300 overflow-hidden`}>
-        <div className="p-4">
-          <div className="flex items-center justify-between mb-6">
-            <h3 className={`${sidebarOpen ? 'block' : 'hidden'} bg-gradient-to-r from-accent-blue to-accent-green bg-clip-text text-transparent text-lg font-semibold`}>
-              Milk Business
-            </h3>
-            <button
-              onClick={() => setSidebarOpen(!sidebarOpen)}
-              className="p-2 hover:bg-primary-700 rounded-lg transition-colors duration-200"
-            >
-              <FaBars className="text-white text-lg" />
-            </button>
-          </div>
-
-          {/* Navigation Menu */}
-          <div className="space-y-2">
-            {/* Cattle Management Section */}
-            <div>
-              <div
-                className={`${sidebarOpen ? '' : 'justify-center'} flex items-center p-3 hover:bg-primary-700 rounded-lg cursor-pointer transition-colors duration-200 ${cattleMenuOpen ? 'bg-primary-700' : ''}`}
-                onClick={() => setCattleMenuOpen(!cattleMenuOpen)}
-              >
-                {sidebarOpen ? (
-                  cattleMenuOpen ? (
-                    <FaChevronDown className="text-accent-blue text-sm mr-3" />
-                  ) : (
-                    <FaChevronRight className="text-accent-blue text-sm mr-3" />
-                  )
-                ) : null}
-                <FaUser className="text-accent-blue text-lg" />
-                {sidebarOpen && (
-                  <span className="text-white font-medium ml-3">Cattle Management</span>
-                )}
-              </div>
-
-              {/* Submenu Items */}
-              <div className={`${cattleMenuOpen ? 'block' : 'hidden'} ml-6 space-y-1`}>
-                <div
-                  className={`flex items-center p-3 hover:bg-primary-700 rounded-lg cursor-pointer transition-colors duration-200 ${
-                    activeTab === 'overview' ? 'bg-accent-blue/20 border-r-2 border-accent-blue' : ''
-                  }`}
-                  onClick={() => setActiveTab('overview')}
-                >
-                  <FaChartLine className="text-accent-green text-sm" />
-                  {sidebarOpen && (
-                    <span className="text-white ml-3 text-sm">अवलोकन</span>
-                  )}
-                </div>
-
-                <div
-                  className={`flex items-center p-3 hover:bg-primary-700 rounded-lg cursor-pointer transition-colors duration-200 ${
-                    activeTab === 'cows' ? 'bg-accent-blue/20 border-r-2 border-accent-blue' : ''
-                  }`}
-                  onClick={() => setActiveTab('cows')}
-                >
-                  <FaUser className="text-accent-green text-sm" />
-                  {sidebarOpen && (
-                    <span className="text-white ml-3 text-sm">पशुधन</span>
-                  )}
-                </div>
-
-                <div
-                  className={`flex items-center p-3 hover:bg-primary-700 rounded-lg cursor-pointer transition-colors duration-200 ${
-                    activeTab === 'payments' ? 'bg-accent-blue/20 border-r-2 border-accent-blue' : ''
-                  }`}
-                  onClick={() => setActiveTab('payments')}
-                >
-                  <FaWallet className="text-accent-green text-sm" />
-                  {sidebarOpen && (
-                    <span className="text-white ml-3 text-sm">पेमेंट</span>
-                  )}
-                </div>
-
-                <div
-                  className={`flex items-center p-3 hover:bg-primary-700 rounded-lg cursor-pointer transition-colors duration-200 ${
-                    activeTab === 'reviews' ? 'bg-accent-blue/20 border-r-2 border-accent-blue' : ''
-                  }`}
-                  onClick={() => setActiveTab('reviews')}
-                >
-                  <FaStar className="text-accent-green text-sm" />
-                  {sidebarOpen && (
-                    <span className="text-white ml-3 text-sm">रिव्यू</span>
-                  )}
-                </div>
-
-                <div
-                  className={`flex items-center p-3 hover:bg-primary-700 rounded-lg cursor-pointer transition-colors duration-200 ${
-                    activeTab === 'records' ? 'bg-accent-blue/20 border-r-2 border-accent-blue' : ''
-                  }`}
-                  onClick={() => setActiveTab('records')}
-                >
-                  <FaEdit className="text-accent-green text-sm" />
-                  {sidebarOpen && (
-                    <span className="text-white ml-3 text-sm">रेकॉर्ड अपडेट</span>
-                  )}
-                </div>
-
-                <div
-                  className={`flex items-center p-3 hover:bg-primary-700 rounded-lg cursor-pointer transition-colors duration-200 ${
-                    activeTab === 'reports' ? 'bg-accent-blue/20 border-r-2 border-accent-blue' : ''
-                  }`}
-                  onClick={() => setActiveTab('reports')}
-                >
-                  <FaChartLine className="text-accent-green text-sm" />
-                  {sidebarOpen && (
-                    <span className="text-white ml-3 text-sm">रिपोर्ट</span>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="bg-primary-700 rounded-lg p-6 border border-secondary-700">
+        <h2 className="bg-gradient-to-r from-accent-blue to-accent-green bg-clip-text text-transparent mb-1 text-3xl">Hareram DudhWale - Admin Panel</h2>
+        <p className="text-secondary-300 mb-0 text-base">Milk Business Management System</p>
       </div>
 
-      {/* Main Content */}
-      <div className="flex-1 bg-primary-900">
-        <div className="max-w-7xl mx-auto p-6">
-          {/* Header */}
-          <div className="bg-primary-700 rounded-lg p-6 mb-6 border border-secondary-700">
-            <h2 className="bg-gradient-to-r from-accent-blue to-accent-green bg-clip-text text-transparent mb-1 text-3xl">Hareram DudhWale - Admin Panel</h2>
-            <p className="text-secondary-300 mb-0 text-base">Milk Business Management System</p>
-          </div>
-
-          {/* Content Area */}
-          <div className="space-y-6">
-            {activeTab === 'overview' && renderOverview()}
-            {activeTab === 'cows' && renderCows()}
-            {activeTab === 'payments' && renderPayments()}
-            {activeTab === 'reviews' && renderReviews()}
-            {activeTab === 'records' && renderRecords()}
-            {activeTab === 'reports' && renderReports()}
-          </div>
-        </div>
+      {/* Content Area */}
+      <div className="space-y-6">
+        {activeTab === 'overview' && renderOverview()}
+        {activeTab === 'cows' && renderCows()}
+        {activeTab === 'payments' && renderPayments()}
+        {activeTab === 'reviews' && renderReviews()}
+        {activeTab === 'records' && renderRecords()}
+        {activeTab === 'reports' && renderReports()}
       </div>
 
       {/* Modals remain the same */}
@@ -3134,8 +2411,7 @@ const AdminDashboard = () => {
       {showInseminationForm && <InseminationForm cow={selectedCow} onClose={() => setShowInseminationForm(false)} onSubmit={handleInseminationSubmit} />}
       {showCalvingForm && <CalvingForm cow={selectedCow} onClose={() => setShowCalvingForm(false)} onSubmit={handleCalvingSubmit} />}
       {showDewormingForm && <DewormingForm cow={selectedCow} onClose={() => setShowDewormingForm(false)} onSubmit={handleDewormingSubmit} />}
-      {showMilkForm && renderMilkForm()}
-      {showExpenseForm && renderExpenseForm()}
+
       {showSicknessForm && renderSicknessForm()}
       {showPregnancyForm && renderPregnancyForm()}
       {showDryCowForm && renderDryCowForm()}

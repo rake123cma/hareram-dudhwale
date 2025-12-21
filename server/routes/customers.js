@@ -15,7 +15,19 @@ router.get('/my-profile', auth, authorizeCustomer, async (req, res) => {
     if (!customer) {
       return res.status(404).json({ message: 'Customer not found' });
     }
-    res.json(customer);
+    
+    // Get user data to include profile picture for OAuth users
+    const user = await User.findOne({ customer_id: req.user.customer_id });
+    
+    // Combine customer and user data
+    const profileData = {
+      ...customer.toObject(),
+      profilePicture: user?.profilePicture || null,
+      provider: user?.provider || null,
+      hasPassword: !!user?.password // Check if user has a password set
+    };
+    
+    res.json(profileData);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
@@ -76,8 +88,8 @@ router.get('/my-sales', auth, async (req, res) => {
 // Customer self-service profile update
 router.put('/my-profile', auth, authorizeCustomer, async (req, res) => {
   try {
-    // Allow customers to update only certain fields
-    const allowedFields = ['name', 'email', 'address', 'pincode', 'billing_type', 'subscription_amount', 'price_per_liter'];
+    // Allow customers to update only certain fields (excluding email and phone for security)
+    const allowedFields = ['name', 'phone', 'address', 'pincode', 'billing_type', 'subscription_amount', 'price_per_liter'];
     const updateData = {};
 
     // Filter only allowed fields
@@ -87,13 +99,94 @@ router.put('/my-profile', auth, authorizeCustomer, async (req, res) => {
       }
     });
 
+    console.log('Profile update request:', updateData);
+    
     const customer = await Customer.findByIdAndUpdate(req.user.customer_id, updateData, { new: true });
     if (!customer) {
       return res.status(404).json({ message: 'Customer not found' });
     }
+    
+    console.log('Profile updated successfully:', customer);
     res.json(customer);
   } catch (err) {
+    console.error('Profile update error:', err);
     res.status(400).json({ message: err.message });
+  }
+});
+
+// Set password for Google OAuth users (without requiring current password)
+router.put('/set-password', auth, authorizeCustomer, async (req, res) => {
+  try {
+    const { newPassword, confirmPassword } = req.body;
+
+    // Validation
+    if (!newPassword || !confirmPassword) {
+      return res.status(400).json({ message: 'All password fields are required' });
+    }
+
+    if (newPassword !== confirmPassword) {
+      return res.status(400).json({ message: 'Password and confirmation do not match' });
+    }
+
+    // Password validation function (similar to auth.js)
+    const validatePassword = (password) => {
+      const minLength = 8;
+      const hasUpperCase = /[A-Z]/.test(password);
+      const hasLowerCase = /[a-z]/.test(password);
+      const hasNumbers = /\d/.test(password);
+      const hasSpecialChar = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password);
+
+      if (password.length < minLength) {
+        return 'Password must be at least 8 characters long';
+      }
+      if (!hasUpperCase) {
+        return 'Password must contain at least one uppercase letter';
+      }
+      if (!hasLowerCase) {
+        return 'Password must contain at least one lowercase letter';
+      }
+      if (!hasNumbers) {
+        return 'Password must contain at least one number';
+      }
+      if (!hasSpecialChar) {
+        return 'Password must contain at least one special character';
+      }
+      return null;
+    };
+
+    const passwordError = validatePassword(newPassword);
+    if (passwordError) {
+      return res.status(400).json({ message: passwordError });
+    }
+
+    // Find user
+    const user = await User.findOne({ customer_id: req.user.customer_id });
+    if (!user) {
+      return res.status(404).json({ message: 'User account not found' });
+    }
+
+    // Check if user already has a password (for OAuth users who already set one)
+    if (user.password && user.password !== '') {
+      return res.status(400).json({ message: 'Password already exists. Use change password instead.' });
+    }
+
+    // Hash new password
+    const hashedNewPassword = await bcrypt.hash(newPassword, 10);
+
+    // Update password and set username to email for email login
+    user.password = hashedNewPassword;
+    if (user.provider === 'google') {
+      // For Google OAuth users, set username to email for email login capability
+      const customer = await Customer.findById(req.user.customer_id);
+      if (customer && customer.email) {
+        user.username = customer.email;
+      }
+    }
+    await user.save();
+
+    res.json({ message: 'Password set successfully! You can now login with email and password.' });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
   }
 });
 

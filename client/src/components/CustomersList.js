@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import Swal from 'sweetalert2';
 import { FaPlus, FaEdit, FaTrash, FaCheck, FaTimes, FaSync } from 'react-icons/fa';
+import { formatCurrency } from '../utils/currency';
 
 const CustomersList = () => {
   const [customers, setCustomers] = useState([]);
@@ -10,6 +11,9 @@ const CustomersList = () => {
   const [error, setError] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
+  const [isSearching, setIsSearching] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     phone: '',
@@ -168,17 +172,70 @@ const CustomersList = () => {
     setError('');
   };
 
+  // Debounce search term to improve performance
+  useEffect(() => {
+    setIsSearching(true);
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+      setIsSearching(false);
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
+  const getFilteredCustomers = useCallback(() => {
+    if (debouncedSearchTerm.trim() === '') {
+      return customers;
+    }
+    
+    const searchLower = debouncedSearchTerm.toLowerCase();
+    return customers.filter(customer => {
+      const customerName = (customer.name || '').toLowerCase();
+      const customerPhone = customer.phone || '';
+      const customerCategory = (customer.category || '').toLowerCase();
+      
+      return customerName.includes(searchLower) ||
+             customerPhone.includes(debouncedSearchTerm) ||
+             customerCategory.includes(searchLower);
+    });
+  }, [customers, debouncedSearchTerm]);
+
   if (loading) return <div className="text-center p-10 text-sm sm:text-base md:text-lg text-gray-500">Loading customers...</div>;
 
   return (
     <div className="max-w-screen-xl mx-auto">
       <div className="mb-5">
-        <div className="flex justify-between items-center">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <h2 className="m-0 text-gray-800 text-xl sm:text-2xl md:text-3xl">Milk Customers Management</h2>
-          <button onClick={fetchCustomers} className="p-2.5 px-5 border-none rounded cursor-pointer text-sm font-medium transition-colors duration-300 bg-purple-500 text-white hover:bg-purple-600 flex items-center gap-2">
-            <FaSync className="text-sm" />
-            Refresh
-          </button>
+          <div className="flex gap-2">
+            <button onClick={fetchCustomers} className="p-2.5 px-5 border-none rounded cursor-pointer text-sm font-medium transition-colors duration-300 bg-purple-500 text-white hover:bg-purple-600 flex items-center gap-2">
+              <FaSync className="text-sm" />
+              Refresh
+            </button>
+          </div>
+        </div>
+        
+        {/* Search Bar */}
+        <div className="mt-4">
+          <div className="relative max-w-md">
+            <input
+              type="text"
+              placeholder="Search customers by name, phone, or category..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full p-3 pl-10 border border-gray-300 rounded-lg text-sm text-black focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+              disabled={loading}
+            />
+            <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
+              {isSearching ? '⏳' : '🔍'}
+            </div>
+          </div>
+          {searchTerm && (
+            <div className="mt-2 text-sm text-gray-600 flex items-center gap-2">
+              <span>Showing {getFilteredCustomers().length} of {customers.length} customers</span>
+              {isSearching && <span className="text-blue-500">Searching...</span>}
+            </div>
+          )}
         </div>
       </div>
 
@@ -388,7 +445,7 @@ const CustomersList = () => {
             </tr>
           </thead>
           <tbody>
-            {customers.map((customer, index) => (
+            {getFilteredCustomers().map((customer, index) => (
               <tr key={customer._id} className={`${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-blue-50`}>
                 <td className="p-3 text-left border-b border-gray-200 text-gray-800 text-sm sm:text-base">{customer.name}</td>
                 <td className="p-3 text-left border-b border-gray-200 text-gray-800 text-sm sm:text-base">{customer.phone}</td>
@@ -412,7 +469,7 @@ const CustomersList = () => {
                 <td className={`p-3 text-left border-b border-gray-200 font-semibold text-sm sm:text-base ${
                   (customer.balance_due || 0) > 0 ? 'text-red-600' : 'text-green-600'
                 }`}>
-                  ₹{customer.balance_due || 0}
+                  {formatCurrency(customer.balance_due || 0)}
                 </td>
                 <td className="p-3 text-left border-b border-gray-200">
                   <span className={`px-2 py-1 rounded-full text-xs font-medium ${
@@ -444,6 +501,14 @@ const CustomersList = () => {
             ))}
           </tbody>
         </table>
+        
+        {getFilteredCustomers().length === 0 && searchTerm && (
+          <div className="text-center py-12">
+            <div className="text-6xl text-gray-300 mb-4">🔍</div>
+            <h4 className="text-xl font-semibold text-gray-800 mb-2">No customers found</h4>
+            <p className="text-gray-600">No customers match your search criteria "{searchTerm}"</p>
+          </div>
+        )}
       </div>
 
       <button

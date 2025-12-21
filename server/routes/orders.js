@@ -52,6 +52,7 @@ router.get('/my-orders', auth, async (req, res) => {
     if (status) query.order_status = status;
 
     const orders = await Order.find(query)
+      .populate('customer_id', 'name phone email')
       .populate('items.product_id', 'name category')
       .sort({ createdAt: -1 })
       .limit(limit * 1)

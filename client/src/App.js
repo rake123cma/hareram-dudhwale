@@ -4,14 +4,17 @@ import Home from './components/Home';
 import ProductsPage from './components/ProductsPage';
 import Login from './components/Login';
 import Register from './components/Register';
+import AdminRegister from './components/AdminRegister';
 import ForgotPassword from './components/ForgotPassword';
+import AdminChangePassword from './components/AdminChangePassword';
+import OAuthSuccess from './components/OAuthSuccess';
+import OAuthHandler from './components/OAuthHandler';
 import AdminLayout from './components/AdminLayout';
 import AdminDashboard from './components/AdminDashboard';
 import AdminSettings from './components/AdminSettings';
 import OrdersManagement from './components/OrdersManagement';
 import CategoriesList from './components/CategoriesList';
 import ProductsList from './components/ProductsList';
-import PaymentSettingsManagement from './components/PaymentSettingsManagement';
 import PendingCustomers from './components/PendingCustomers';
 import CustomersList from './components/CustomersList';
 import DailyAttendance from './components/DailyAttendance';
@@ -29,11 +32,20 @@ function App() {
         <Route path="/" element={<Home />} />
         <Route path="/products" element={<ProductsPage />} />
         <Route path="/login" element={<Login />} />
+        <Route path="/oauth-handler" element={<OAuthHandler />} />
+        <Route path="/oauth-success" element={<OAuthSuccess />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/admin-register" element={<AdminRegister />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/admin-change-password" element={<AdminChangePassword />} />
         <Route path="/admin" element={<ProtectedRoute requiredRole="admin"><AdminLayout /></ProtectedRoute>}>
           <Route index element={<AdminDashboard />} />
-          <Route path="payments" element={<PaymentSettingsManagement />} />
+          <Route path="overview" element={<AdminDashboard />} />
+          <Route path="livestock" element={<AdminDashboard />} />
+          <Route path="payments" element={<AdminDashboard />} />
+          <Route path="reviews" element={<AdminDashboard />} />
+          <Route path="record-update" element={<AdminDashboard />} />
+          <Route path="cattle-reports" element={<AdminDashboard />} />
           <Route path="orders" element={<OrdersManagement />} />
           <Route path="categories" element={<CategoriesList />} />
           <Route path="products" element={<ProductsList />} />

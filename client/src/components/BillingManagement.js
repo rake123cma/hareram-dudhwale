@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import Swal from 'sweetalert2';
 import { FaPlus, FaEye, FaCreditCard, FaExclamationTriangle, FaCheck, FaTimes } from 'react-icons/fa';
+import { formatCurrency, formatNumber } from '../utils/currency';
 
 const BillingManagement = () => {
   const [bills, setBills] = useState([]);
@@ -38,7 +39,7 @@ const BillingManagement = () => {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
-      console.log('Token:', token); // Debug: check if token exists
+      // Check token
       if (!token) {
         setError('No authentication token found. Please log in again.');
         setLoading(false);
@@ -122,7 +123,7 @@ const BillingManagement = () => {
       input: 'textarea',
       inputLabel: 'Reminder message for customer',
       inputPlaceholder: 'Enter reminder message...',
-      inputValue: `Payment reminder: Your bill ${bill.invoice_number} of ₹${bill.total_amount} is due. Please make payment at your earliest convenience.`,
+      inputValue: `Payment reminder: Your bill ${bill.invoice_number} of ${formatCurrency(bill.total_amount)} is due. Please make payment at your earliest convenience.`,
       showCancelButton: true,
       inputValidator: (value) => {
         if (!value) {
@@ -171,11 +172,11 @@ const BillingManagement = () => {
           <div class="grid grid-cols-2 gap-4">
             <div class="bg-blue-50 p-3 rounded-lg border border-blue-200">
               <div class="text-sm text-blue-800 font-medium">Bill Amount</div>
-              <div class="text-xl font-bold text-blue-900">₹${bill.total_amount.toFixed(2)}</div>
+              <div class="text-xl font-bold text-blue-900">${formatCurrency(bill.total_amount)}</div>
             </div>
             <div class="bg-green-50 p-3 rounded-lg border border-green-200">
               <div class="text-sm text-green-800 font-medium">Outstanding Balance</div>
-              <div class="text-xl font-bold text-green-900">₹${customerBalance.toFixed(2)}</div>
+              <div class="text-xl font-bold text-green-900">${formatCurrency(customerBalance)}</div>
             </div>
           </div>
 
@@ -190,7 +191,7 @@ const BillingManagement = () => {
                 min="0"
                 class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="Enter payment amount"
-                value="${bill.total_amount}"
+                value="${formatNumber(bill.total_amount)}"
               />
             </div>
 
@@ -284,7 +285,7 @@ const BillingManagement = () => {
       Swal.fire({
         icon: 'success',
         title: 'Payment Recorded!',
-        text: `Payment of ₹${formValues.amount} has been recorded successfully.`,
+        text: `Payment of ${formatCurrency(formValues.amount)} has been recorded successfully.`,
         timer: 2000,
         showConfirmButton: false
       });
@@ -333,13 +334,13 @@ const BillingManagement = () => {
 
       const [year, month] = fullBill.billing_period.split('-');
 
-      console.log('Fetching attendance for customer:', fullBill.customer_id._id, 'period:', fullBill.billing_period);
+      // Fetching attendance data
 
       // Fetch attendance data for this customer and billing period
       const attendanceResponse = await axios.get(`/api/customers/my-sales?customerId=${fullBill.customer_id._id}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      console.log('Attendance API response:', attendanceResponse.data);
+      // Attendance data received
 
       // Filter attendance for the billing period
       // month is 1-based (11 = November), but Date constructor uses 0-based
@@ -350,7 +351,7 @@ const BillingManagement = () => {
       startDate.setHours(0, 0, 0, 0);
       endDate.setHours(23, 59, 59, 999);
 
-      console.log('Date range:', startDate.toISOString(), 'to', endDate.toISOString());
+      // Date range processed
 
       const filteredAttendance = attendanceResponse.data.filter(attendance => {
         let attendanceDate;
@@ -364,7 +365,7 @@ const BillingManagement = () => {
 
         // Check if date is valid
         if (isNaN(attendanceDate.getTime())) {
-          console.log('Invalid date:', attendance.date, typeof attendance.date);
+          // Invalid date handling
           return false;
         }
 
@@ -374,11 +375,11 @@ const BillingManagement = () => {
         const endDateOnly = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
 
         const isInRange = attendanceDateOnly >= startDateOnly && attendanceDateOnly <= endDateOnly;
-        console.log('Checking date:', attendance.date, 'parsed:', attendanceDate.toISOString(), 'date only:', attendanceDateOnly.toISOString(), 'start:', startDateOnly.toISOString(), 'end:', endDateOnly.toISOString(), 'in range:', isInRange);
+        // Date range check
         return isInRange;
       });
 
-      console.log('Filtered attendance:', filteredAttendance);
+      // Filtered attendance
 
       setAttendanceData(filteredAttendance);
       setSelectedBill({
@@ -404,15 +405,20 @@ const BillingManagement = () => {
     return statusClasses[status] || 'status-unpaid';
   };
 
-  const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('en-IN', {
-      style: 'currency',
-      currency: 'INR'
-    }).format(amount);
-  };
-
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString('en-IN');
+  };
+
+  // Helper functions for complex calculations
+  const calculateAdditionalProducts = () => {
+    return attendanceData.reduce((sum, a) => 
+      sum + (a.additional_products || []).reduce((subSum, p) => subSum + (p.total_amount || 0), 0), 0
+    );
+  };
+
+  const calculateSubscriptionAmount = () => {
+    const additionalProducts = calculateAdditionalProducts();
+    return (selectedBill.total_amount || 0) - additionalProducts;
   };
 
   if (loading && bills.length === 0) return <div className="text-center p-10 text-sm sm:text-base md:text-lg text-gray-500">Loading billing data...</div>;
@@ -510,7 +516,7 @@ const BillingManagement = () => {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
                     <div className="text-sm text-gray-600 font-medium">Bill Amount</div>
-                    <div className="text-2xl font-bold text-blue-600">₹{selectedBill.total_amount?.toFixed(2)}</div>
+                    <div className="text-2xl font-bold text-blue-600">{formatCurrency(selectedBill.total_amount)}</div>
                     <div className="text-xs text-gray-500 mt-1">Total bill amount</div>
                   </div>
                   <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
@@ -523,7 +529,7 @@ const BillingManagement = () => {
                   <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
                     <div className="text-sm text-gray-600 font-medium">Advance Payment</div>
                     <div className="text-xl font-bold text-green-600">
-                      ₹{selectedBill.customer_balance < 0 ? Math.abs(selectedBill.customer_balance).toFixed(2) : '0.00'}
+                      {formatCurrency(selectedBill.customer_balance < 0 ? Math.abs(selectedBill.customer_balance) : 0)}
                     </div>
                     <div className="text-xs text-gray-500 mt-1">
                       Amount paid in advance
@@ -551,22 +557,22 @@ const BillingManagement = () => {
                       <>
                         <div>
                           <span className="text-sm text-gray-600 font-medium">Price per Liter:</span>
-                          <div className="text-lg font-semibold text-gray-800">₹{selectedBill.price_per_liter?.toFixed(2)}</div>
+                          <div className="text-lg font-semibold text-gray-800">{formatCurrency(selectedBill.price_per_liter)}</div>
                         </div>
                         <div>
                           <span className="text-sm text-gray-600 font-medium">Milk Amount:</span>
-                          <div className="text-lg font-semibold text-blue-600">₹{(selectedBill.total_liters * selectedBill.price_per_liter)?.toFixed(2)}</div>
+                          <div className="text-lg font-semibold text-blue-600">{formatCurrency((selectedBill.total_liters * selectedBill.price_per_liter) || 0)}</div>
                         </div>
                       </>
                     ) : (
                       <>
                         <div>
                           <span className="text-sm text-gray-600 font-medium">Subscription Amount:</span>
-                          <div className="text-lg font-semibold text-blue-600">₹{(selectedBill.total_amount - (attendanceData.reduce((sum, a) => sum + (a.additional_products || []).reduce((subSum, p) => subSum + (p.total_amount || 0), 0), 0) || 0))?.toFixed(2)}</div>
+                          <div className="text-lg font-semibold text-blue-600">{formatCurrency(calculateSubscriptionAmount())}</div>
                         </div>
                         <div>
                           <span className="text-sm text-gray-600 font-medium">Additional Products:</span>
-                          <div className="text-lg font-semibold text-purple-600">₹{attendanceData.reduce((sum, a) => sum + (a.additional_products || []).reduce((subSum, p) => subSum + (p.total_amount || 0), 0), 0)?.toFixed(2)}</div>
+                          <div className="text-lg font-semibold text-purple-600">{formatCurrency(calculateAdditionalProducts())}</div>
                         </div>
                       </>
                     )}
@@ -578,15 +584,15 @@ const BillingManagement = () => {
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div>
                           <span className="text-sm text-gray-600 font-medium">Milk Amount:</span>
-                          <div className="text-lg font-semibold text-blue-600">₹{(selectedBill.total_liters * selectedBill.price_per_liter)?.toFixed(2)}</div>
+                          <div className="text-lg font-semibold text-blue-600">{formatCurrency((selectedBill.total_liters * selectedBill.price_per_liter) || 0)}</div>
                         </div>
                         <div>
                           <span className="text-sm text-gray-600 font-medium">Additional Products:</span>
-                          <div className="text-lg font-semibold text-purple-600">₹{attendanceData.reduce((sum, a) => sum + (a.additional_products || []).reduce((subSum, p) => subSum + (p.total_amount || 0), 0), 0)?.toFixed(2)}</div>
+                          <div className="text-lg font-semibold text-purple-600">{formatCurrency(calculateAdditionalProducts())}</div>
                         </div>
                         <div>
                           <span className="text-sm text-gray-600 font-medium">Total Amount:</span>
-                          <div className="text-xl font-bold text-green-600">₹{selectedBill.total_amount?.toFixed(2)}</div>
+                          <div className="text-xl font-bold text-green-600">{formatCurrency(selectedBill.total_amount)}</div>
                         </div>
                       </div>
                     </div>
@@ -597,7 +603,7 @@ const BillingManagement = () => {
                     <div className="mt-4 pt-4 border-t border-gray-200">
                       <div className="text-right">
                         <span className="text-sm text-gray-600 font-medium">Total Amount:</span>
-                        <div className="text-xl font-bold text-green-600">₹{selectedBill.total_amount?.toFixed(2)}</div>
+                        <div className="text-xl font-bold text-green-600">{formatCurrency(selectedBill.total_amount)}</div>
                       </div>
                     </div>
                   )}
@@ -619,7 +625,7 @@ const BillingManagement = () => {
                             {payment.notes && <div className="text-sm text-gray-600">Notes: {payment.notes}</div>}
                           </div>
                           <div className="text-right">
-                            <div className="text-lg font-bold text-green-600">₹{payment.amount?.toFixed(2)}</div>
+                            <div className="text-lg font-bold text-green-600">{formatCurrency(payment.amount)}</div>
                             <div className="text-xs text-gray-500">Recorded: {new Date(payment.recorded_at).toLocaleDateString('en-IN')}</div>
                           </div>
                         </div>
@@ -628,7 +634,7 @@ const BillingManagement = () => {
                     <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mt-4">
                       <div className="flex justify-between items-center">
                         <span className="text-sm font-medium text-blue-800">Total Payments:</span>
-                        <span className="text-lg font-bold text-blue-900">₹{selectedBill.payments.reduce((sum, p) => sum + p.amount, 0)?.toFixed(2)}</span>
+                        <span className="text-lg font-bold text-blue-900">{formatCurrency(selectedBill.payments.reduce((sum, p) => sum + p.amount, 0))}</span>
                       </div>
                     </div>
                   </div>
@@ -945,7 +951,7 @@ const BillingManagement = () => {
                     </span>
                     {bill.billing_type === 'per_liter' && (
                       <div className="text-xs text-gray-500 hidden sm:block">
-                        {bill.total_liters}L × ₹{bill.price_per_liter}/L
+                        {formatNumber(bill.total_liters)}L × {formatCurrency(bill.price_per_liter)}/L
                       </div>
                     )}
                   </div>
@@ -955,7 +961,7 @@ const BillingManagement = () => {
                     <div className="font-semibold text-gray-800 text-xs sm:text-sm">{formatCurrency(bill.total_amount)}</div>
                     {bill.billing_type === 'per_liter' && (
                       <div className="text-xs text-gray-500 hidden sm:block">
-                        ({bill.total_liters} × {bill.price_per_liter})
+                        ({formatNumber(bill.total_liters)} × {formatNumber(bill.price_per_liter)})
                       </div>
                     )}
                   </div>

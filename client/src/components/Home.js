@@ -681,7 +681,7 @@ const Home = () => {
               farmImages.map((image, index) => (
                 <div key={image._id} className="group relative overflow-hidden rounded-2xl shadow-2xl hover:shadow-green-500/25 transition-all duration-500 hover:-translate-y-2">
                   <div className="aspect-square overflow-hidden">
-                    <img src={`${image.url}`} alt={image.title || `Farm Image ${index + 1}`} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
+                    <img src={image.url.startsWith('/uploads') ? `http://localhost:5000${image.url}` : image.url} alt={image.title || `Farm Image ${index + 1}`} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
                   </div>
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                   <div className="absolute bottom-4 left-4 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300">
@@ -958,6 +958,8 @@ const Home = () => {
                     <a href="#about" className="block text-gray-300 hover:text-blue-400 transition-colors duration-300">About</a>
                     <a href="#pricing" className="block text-gray-300 hover:text-blue-400 transition-colors duration-300">Pricing</a>
                     <a href="#contact" className="block text-gray-300 hover:text-blue-400 transition-colors duration-300">Contact</a>
+                    <a href="/privacy-policy.html" className="block text-gray-300 hover:text-blue-400 transition-colors duration-300">Privacy Policy</a>
+                    <a href="/terms-of-service.html" className="block text-gray-300 hover:text-blue-400 transition-colors duration-300">Terms of Service</a>
                   </div>
                 </div>
                 <div className="text-center md:text-left">

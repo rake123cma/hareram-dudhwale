@@ -525,20 +525,17 @@ const FinancialManagement = () => {
       const token = localStorage.getItem('token');
       const data = { ...supplierForm, credit_limit: parseFloat(supplierForm.credit_limit || 0) };
 
-      console.log('Submitting supplier data:', data); // Debug log
-      console.log('User token:', token); // Debug log
+      // Submitting supplier data
 
       if (editingItem) {
         const response = await axios.put(`/api/financial/vendors/${editingItem._id}`, data, {
           headers: { Authorization: `Bearer ${token}` }
         });
-        console.log('Update response:', response); // Debug log
         Swal.fire('Success', 'Supplier updated successfully', 'success');
       } else {
         const response = await axios.post('/api/financial/vendors', data, {
           headers: { Authorization: `Bearer ${token}` }
         });
-        console.log('Create response:', response); // Debug log
         Swal.fire('Success', 'Supplier added successfully', 'success');
       }
 
@@ -806,20 +803,17 @@ const FinancialManagement = () => {
         maturity_date: loanForm.maturity_date || new Date(new Date(loanForm.loan_date).getTime() + (parseInt(loanForm.tenure_months) * 30 * 24 * 60 * 60 * 1000)).toISOString().split('T')[0]
       };
 
-      console.log('Submitting loan data:', data); // Debug log
-      console.log('User token:', token); // Debug log
+      // Submitting loan data
 
       if (editingItem) {
         const response = await axios.put(`/api/financial/loans/${editingItem._id}`, data, {
           headers: { Authorization: `Bearer ${token}` }
         });
-        console.log('Update response:', response); // Debug log
         Swal.fire('Success', 'Loan updated successfully', 'success');
       } else {
         const response = await axios.post('/api/financial/loans', data, {
           headers: { Authorization: `Bearer ${token}` }
         });
-        console.log('Create response:', response); // Debug log
         Swal.fire('Success', 'Loan added successfully', 'success');
       }
 
@@ -844,7 +838,7 @@ const FinancialManagement = () => {
         loan_id: loanId
       };
 
-      console.log('Submitting loan payment data:', data);
+      // Submitting loan payment data
 
       await axios.post('/api/financial/loan-payments', data, {
         headers: { Authorization: `Bearer ${token}` }

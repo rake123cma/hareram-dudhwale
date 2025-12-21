@@ -217,9 +217,9 @@ const OrdersManagement = () => {
       // This is a special reservation
       const formattedReservation = {
         id: order._id,
-        customerName: order.customer_id?.name || 'N/A',
-        customerPhone: order.customer_id?.phone || 'N/A',
-        customerAddress: 'N/A', // Special reservations don't have address
+        customerName: order.customer_id?.name || order.customer_name || 'N/A',
+        customerPhone: order.customer_id?.phone || order.customer_phone || 'N/A',
+        customerAddress: order.customer_id?.address || order.customer_address || 'N/A', // Special reservations might have address
         date: order.createdAt || order.expected_delivery_date,
         paymentMethod: order.payment_method || 'N/A',
         order_status: order.status,
@@ -238,14 +238,14 @@ const OrdersManagement = () => {
       // This is a regular order from API
       const formattedOrder = {
         id: order._id,
-        customerName: order.customer_id?.name || 'N/A',
-        customerPhone: order.customer_id?.phone || 'N/A',
-        customerAddress: order.delivery_address || 'N/A',
+        customerName: order.customer_id?.name || order.customer_name || 'N/A',
+        customerPhone: order.customer_id?.phone || order.customer_phone || 'N/A',
+        customerAddress: order.customer_id?.address || order.customer_address || order.delivery_address || 'N/A',
         date: order.createdAt,
         paymentMethod: order.payment_method,
         order_status: order.order_status,
         items: order.items?.map(item => ({
-          name: item.product_id?.name || 'Product',
+          name: item.product_id?.name || item.product_name || 'Product',
           quantity: item.quantity,
           price: item.unit_price
         })) || [],
@@ -352,8 +352,8 @@ const OrdersManagement = () => {
                     <td className="p-[15px] text-left border-b border-gray-100 font-semibold text-blue-500 font-mono">#{order._id.slice(-8).toUpperCase()}</td>
                     <td className="p-[15px] text-left border-b border-gray-100">
                       <div className="flex flex-col gap-[2px]">
-                        <div className="font-semibold text-gray-800">{order.customer_id?.name || 'N/A'}</div>
-                        <div className="text-sm text-gray-600">{order.customer_id?.phone || 'N/A'}</div>
+                        <div className="font-semibold text-gray-800">{order.customer_id?.name || order.customer_name || 'N/A'}</div>
+                        <div className="text-sm text-gray-600">{order.customer_id?.phone || order.customer_phone || 'N/A'}</div>
                       </div>
                     </td>
                     <td className="p-[15px] text-left border-b border-gray-100 text-black">{new Date(order.createdAt).toLocaleDateString('en-IN')}</td>
@@ -427,8 +427,8 @@ const OrdersManagement = () => {
                 <tr key={reservation._id} className={`${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-blue-50`}>
                   <td className="p-[15px] text-left border-b border-gray-200 text-gray-800 text-sm">
                     <div>
-                      <div className="font-medium">{reservation.customer_id?.name}</div>
-                      <div className="text-gray-500 text-xs">{reservation.customer_id?.phone}</div>
+                      <div className="font-medium">{reservation.customer_id?.name || 'N/A'}</div>
+                      <div className="text-gray-500 text-xs">{reservation.customer_id?.phone || 'N/A'}</div>
                     </div>
                   </td>
                   <td className="p-[15px] text-left border-b border-gray-200 text-gray-800 text-sm">{reservation.product_id?.name}</td>
