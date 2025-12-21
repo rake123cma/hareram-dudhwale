@@ -681,7 +681,7 @@ const Home = () => {
               farmImages.map((image, index) => (
                 <div key={image._id} className="group relative overflow-hidden rounded-2xl shadow-2xl hover:shadow-green-500/25 transition-all duration-500 hover:-translate-y-2">
                   <div className="aspect-square overflow-hidden">
-                    <img src={image.url.startsWith('/uploads') ? `http://localhost:5000${image.url}` : image.url} alt={image.title || `Farm Image ${index + 1}`} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
+                    <img src={image.url.startsWith('/uploads') ? `${image.url}` : image.url} alt={image.title || `Farm Image ${index + 1}`} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
                   </div>
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                   <div className="absolute bottom-4 left-4 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300">

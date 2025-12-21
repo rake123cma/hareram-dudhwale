@@ -6,7 +6,8 @@ const OAuthHandler = () => {
 
   useEffect(() => {
     // Redirect to Google OAuth endpoint on backend server
-    const backendUrl = 'http://localhost:5000/api/auth/google';
+    // Use relative URL to work in both development and production
+    const backendUrl = '/api/auth/google';
     window.location.href = backendUrl;
   }, []);
 

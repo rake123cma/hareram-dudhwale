@@ -173,7 +173,7 @@ const AdminSettings = () => {
                 {farmImages.slice(0, 4).map((image, index) => (
                   <div key={image._id} className="relative">
                     <img
-                      src={image.url.startsWith('/uploads') ? `http://localhost:5000${image.url}` : image.url}
+                      src={image.url.startsWith('/uploads') ? `${image.url}` : image.url}
                       alt={image.title || `Farm ${index + 1}`}
                       className="w-full h-24 object-cover rounded-lg border border-secondary-600"
                       onError={(e) => {
