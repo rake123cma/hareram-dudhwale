@@ -38,23 +38,69 @@ const Login = () => {
     setLoading(true);
 
     try {
-      const res = await axios.post('/api/auth/email-login', { email, password }, { timeout: 5000 });
+      console.log('🔐 Customer login attempt:', email);
+      
+      // Validate inputs
+      if (!email || !password) {
+        alert('Please enter both email/mobile number and password');
+        return;
+      }
+      
+      // Check if input is valid email or mobile number
+      const isEmail = email.includes('@');
+      const isMobile = /^\d{10}$/.test(email.replace(/\s+/g, ''));
+      
+      if (!isEmail && !isMobile) {
+        alert('Please enter a valid email address or 10-digit mobile number');
+        return;
+      }
+      
+      if (isMobile && email.replace(/\s+/g, '').length !== 10) {
+        alert('Mobile number must be exactly 10 digits');
+        return;
+      }
+
+      const res = await axios.post('/api/auth/email-login', { email, password }, { 
+        timeout: 10000,
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      console.log('✅ Login response:', res.data);
+      
+      // Validate response
+      if (!res.data.token || !res.data.user) {
+        throw new Error('Invalid response from server');
+      }
+      
       try {
         localStorage.setItem('token', res.data.token);
         if (res.data.refreshToken) {
           localStorage.setItem('refreshToken', res.data.refreshToken);
         }
+        console.log('💾 Tokens saved to localStorage');
       } catch (storageErr) {
         alert('Login successful, but failed to save authentication data. Please check browser storage permissions.');
         return;
       }
+      
+      console.log('🎯 Redirecting to customer dashboard');
       navigate('/customer');
     } catch (err) {
-      // Handle authentication errors
-      if (err.response?.status === 401) {
-        alert('Invalid email or password. Please check your credentials.');
+      console.error('💥 Login error:', err);
+      
+      // Handle different error types
+      if (err.code === 'ECONNABORTED') {
+        alert('Login timeout. Please check your internet connection and try again.');
+      } else if (err.response?.status === 400) {
+        alert(err.response?.data?.message || 'Invalid input. Please check your email/mobile number and password.');
+      } else if (err.response?.status === 401) {
+        alert(err.response?.data?.message || 'Invalid email/mobile number or password. Please check your credentials.');
+      } else if (err.response?.status === 500) {
+        alert('Server error. Please try again later.');
       } else {
-        alert('Login failed. Please try again later.');
+        alert('Login failed. Please check your internet connection and try again.');
       }
     } finally {
       setLoading(false);
@@ -65,24 +111,62 @@ const Login = () => {
     e.preventDefault();
     setLoading(true);
     try {
-      const res = await axios.post('/api/auth/login', { username, password: adminPassword }, { timeout: 5000 });
+      console.log('🔐 Admin login attempt:', username);
+      
+      // Validate inputs
+      if (!username || !adminPassword) {
+        alert('Please enter both username and password');
+        return;
+      }
+      
+      if (username.length < 3) {
+        alert('Username must be at least 3 characters long');
+        return;
+      }
+
+      const res = await axios.post('/api/auth/login', { username, password: adminPassword }, { 
+        timeout: 10000,
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      console.log('✅ Admin login response:', res.data);
+      
+      // Validate response
+      if (!res.data.token || !res.data.user) {
+        throw new Error('Invalid response from server');
+      }
+      
       try {
         localStorage.setItem('token', res.data.token);
+        console.log('💾 Admin token saved to localStorage');
       } catch (storageErr) {
         alert('Login successful, but failed to save authentication data. Please check browser storage permissions.');
         return;
       }
+      
       if (res.data.user.role === 'admin') {
+        console.log('🎯 Redirecting to admin dashboard');
         navigate('/admin');
       } else {
+        console.log('🎯 Redirecting to customer dashboard');
         navigate('/customer');
       }
     } catch (err) {
-      // Handle authentication errors
-      if (err.response?.status === 401) {
-        alert('Invalid username or password. Please check your credentials.');
+      console.error('💥 Admin login error:', err);
+      
+      // Handle different error types
+      if (err.code === 'ECONNABORTED') {
+        alert('Login timeout. Please check your internet connection and try again.');
+      } else if (err.response?.status === 400) {
+        alert(err.response?.data?.message || 'Invalid input. Please check your username and password.');
+      } else if (err.response?.status === 401) {
+        alert(err.response?.data?.message || 'Invalid username or password. Please check your credentials.');
+      } else if (err.response?.status === 500) {
+        alert('Server error. Please try again later.');
       } else {
-        alert('Login failed. Please try again later.');
+        alert('Login failed. Please check your internet connection and try again.');
       }
     } finally {
       setLoading(false);
@@ -127,6 +211,28 @@ const Login = () => {
           <p className="text-white text-opacity-80 mt-2 mb-0 text-lg md:text-xl font-light">
             Fresh Milk Delivery in Ranchi
           </p>
+          
+          {/* Security Trust Indicators */}
+          <div className="flex items-center justify-center mt-4 space-x-4 text-white text-opacity-90">
+            <div className="flex items-center space-x-1">
+              <svg className="w-4 h-4 text-green-300" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
+              </svg>
+              <span className="text-xs font-medium">Secure Login</span>
+            </div>
+            <div className="flex items-center space-x-1">
+              <svg className="w-4 h-4 text-blue-300" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+              </svg>
+              <span className="text-xs font-medium">SSL Protected</span>
+            </div>
+            <div className="flex items-center space-x-1">
+              <svg className="w-4 h-4 text-purple-300" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span className="text-xs font-medium">Verified Business</span>
+            </div>
+          </div>
         </div>
 
         {/* Login Form Card */}
@@ -162,12 +268,12 @@ const Login = () => {
 
           {loginType === 'customer' ? (
             <div>
-              <form onSubmit={handleCustomerSubmit}>
+              <form onSubmit={handleCustomerSubmit} autoComplete="on" noValidate>
                 <h3 className="m-0 mb-2.5 text-gray-800 text-xl md:text-2xl flex items-center gap-2.5">
                   🥛 Customer Login
                 </h3>
                 <p className="text-gray-600 mb-5 md:mb-6 text-sm">
-                  Enter your email address and password to login
+                  Enter your email address or mobile number and password to login
                 </p>
 
                 {/* Google Sign In Button - Moved to Top */}
@@ -209,13 +315,17 @@ const Login = () => {
                   <FaEnvelope className="absolute left-3 md:left-4 top-1/2 transform -translate-y-1/2 text-gray-400 text-base md:text-lg" />
                   <input
                     className="w-full pl-10 md:pl-12 p-3 md:p-4 border-2 border-gray-200 rounded-xl text-base transition-colors duration-300 focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-200"
-                    type="email"
-                    placeholder="Enter your email address"
+                    type="text"
+                    placeholder="Enter email or 10-digit mobile number"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     autoComplete="username"
+                    autoCapitalize="none"
+                    spellCheck="false"
+                    inputMode="email"
                     required
                     disabled={loading}
+                    aria-label="Email address or mobile number"
                   />
                 </div>
                 <div className="relative mb-5">
@@ -227,8 +337,11 @@ const Login = () => {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     autoComplete="current-password"
+                    autoCapitalize="none"
+                    spellCheck="false"
                     required
                     disabled={loading}
+                    aria-label="Password"
                   />
                 </div>
                 <button
@@ -246,7 +359,7 @@ const Login = () => {
             </div>
           ) : (
             <div>
-              <form onSubmit={handleAdminSubmit}>
+              <form onSubmit={handleAdminSubmit} autoComplete="on" noValidate>
                 <h3 className="m-0 mb-2.5 text-gray-800 text-xl md:text-2xl flex items-center gap-2.5">
                   👨‍💼 Admin Login
                 </h3>
@@ -261,8 +374,12 @@ const Login = () => {
                     placeholder="Enter admin username"
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
+                    autoComplete="username"
+                    autoCapitalize="none"
+                    spellCheck="false"
                     required
                     disabled={loading}
+                    aria-label="Admin username"
                   />
                 </div>
                 <div className="relative mb-5">
@@ -274,8 +391,11 @@ const Login = () => {
                     value={adminPassword}
                     onChange={(e) => setAdminPassword(e.target.value)}
                     autoComplete="current-password"
+                    autoCapitalize="none"
+                    spellCheck="false"
                     required
                     disabled={loading}
+                    aria-label="Admin password"
                   />
                 </div>
                 <button
@@ -301,9 +421,31 @@ const Login = () => {
               New customer? <Link to="/register" className="text-white underline font-bold">Register here</Link>
             </p>
           )}
+          
+          {/* Security and Trust Links */}
+          <div className="flex flex-wrap justify-center items-center space-x-4 mb-3">
+            <a href="/privacy-policy" target="_blank" rel="noopener noreferrer" className="text-white text-opacity-60 hover:text-opacity-80 text-xs underline transition-opacity">
+              Privacy Policy
+            </a>
+            <a href="/terms-of-service" target="_blank" rel="noopener noreferrer" className="text-white text-opacity-60 hover:text-opacity-80 text-xs underline transition-opacity">
+              Terms of Service
+            </a>
+            <span className="text-white text-opacity-40 text-xs">|</span>
+            <span className="text-white text-opacity-60 text-xs">
+              📞 6206696267
+            </span>
+          </div>
+          
           <p className="text-white text-opacity-60 text-xs m-0">
             © 2024 Hareram DudhWale. Fresh milk, happy customers.
           </p>
+          
+          {/* Additional Security Notice */}
+          <div className="mt-3 p-2 bg-white bg-opacity-10 rounded-lg backdrop-blur-sm">
+            <p className="text-white text-opacity-80 text-xs m-0">
+              🔒 Your login information is protected with industry-standard encryption
+            </p>
+          </div>
         </div>
       </div>
     </div>

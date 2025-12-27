@@ -62,6 +62,22 @@ const AdminChangePassword = () => {
           <p className="text-white text-opacity-80 mt-2 mb-0 text-lg md:text-xl font-light">
             Admin Password Change
           </p>
+          
+          {/* Security Trust Indicators */}
+          <div className="flex items-center justify-center mt-4 space-x-4 text-white text-opacity-90">
+            <div className="flex items-center space-x-1">
+              <svg className="w-4 h-4 text-green-300" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
+              </svg>
+              <span className="text-xs font-medium">Secure Admin Access</span>
+            </div>
+            <div className="flex items-center space-x-1">
+              <svg className="w-4 h-4 text-blue-300" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+              </svg>
+              <span className="text-xs font-medium">SSL Protected</span>
+            </div>
+          </div>
         </div>
 
         {/* Change Password Form Card */}
@@ -69,7 +85,7 @@ const AdminChangePassword = () => {
           {/* Decorative background */}
           <div className="absolute top-0 left-0 right-0 h-1 bg-red-500"></div>
 
-          <form onSubmit={handleSubmit}>
+          <form onSubmit={handleSubmit} autoComplete="on" noValidate>
             <h3 className="m-0 mb-2.5 text-gray-800 text-xl md:text-2xl flex items-center gap-2.5">
               🔒 Change Admin Password
             </h3>
@@ -85,8 +101,12 @@ const AdminChangePassword = () => {
                 placeholder="Enter admin username"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
+                autoComplete="username"
+                autoCapitalize="none"
+                spellCheck="false"
                 required
                 disabled={loading}
+                aria-label="Admin username"
               />
             </div>
 
@@ -99,8 +119,11 @@ const AdminChangePassword = () => {
                 value={currentPassword}
                 onChange={(e) => setCurrentPassword(e.target.value)}
                 autoComplete="current-password"
+                autoCapitalize="none"
+                spellCheck="false"
                 required
                 disabled={loading}
+                aria-label="Current password"
               />
             </div>
 
@@ -113,8 +136,11 @@ const AdminChangePassword = () => {
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
                 autoComplete="new-password"
+                autoCapitalize="none"
+                spellCheck="false"
                 required
                 disabled={loading}
+                aria-label="New password"
               />
             </div>
 
@@ -127,8 +153,11 @@ const AdminChangePassword = () => {
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 autoComplete="new-password"
+                autoCapitalize="none"
+                spellCheck="false"
                 required
                 disabled={loading}
+                aria-label="Confirm new password"
               />
             </div>
 
@@ -156,9 +185,27 @@ const AdminChangePassword = () => {
 
         {/* Footer */}
         <div className="mt-4 md:mt-7.5 text-center px-4 md:px-0">
+          {/* Security and Contact Information */}
+          <div className="flex flex-wrap justify-center items-center space-x-4 mb-3">
+            <span className="text-white text-opacity-60 text-xs">
+              📞 6206696267
+            </span>
+            <span className="text-white text-opacity-40 text-xs">|</span>
+            <a href="/privacy-policy" target="_blank" rel="noopener noreferrer" className="text-white text-opacity-60 hover:text-opacity-80 text-xs underline transition-opacity">
+              Privacy Policy
+            </a>
+          </div>
+          
           <p className="text-white text-opacity-60 text-xs m-0">
             © 2024 Hareram DudhWale. Fresh milk, happy customers.
           </p>
+          
+          {/* Security Notice */}
+          <div className="mt-3 p-2 bg-white bg-opacity-10 rounded-lg backdrop-blur-sm">
+            <p className="text-white text-opacity-80 text-xs m-0">
+              🔒 Admin credentials are encrypted and securely stored
+            </p>
+          </div>
         </div>
       </div>
     </div>

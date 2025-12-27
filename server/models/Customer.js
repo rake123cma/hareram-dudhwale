@@ -11,6 +11,7 @@ const customerSchema = new mongoose.Schema({
   delivery_time: { type: String, enum: ['morning', 'evening', 'both'], default: 'morning' },
   subscription_amount: { type: Number },
   price_per_liter: { type: Number },
+  last_milk_quantity: { type: Number, default: 1 },
   balance_due: { type: Number, default: 0 },
   category: { type: String, required: true },
   customer_type: { type: String, enum: ['guest customer', 'daily milk customer'], default: 'daily milk customer' },

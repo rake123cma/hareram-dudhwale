@@ -15,48 +15,57 @@ console.log('Starting server...');
 console.log('Node ENV:', process.env.NODE_ENV);
 console.log('PORT:', process.env.PORT || 5000);
 
-// Security middleware
+// Enhanced Security middleware for phishing protection
 app.use((req, res, next) => {
-  // Security headers
+  // Enhanced security headers to prevent phishing warnings
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('X-Frame-Options', 'DENY');
   res.setHeader('X-XSS-Protection', '1; mode=block');
-  res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('X-Permitted-Cross-Domain-Policies', 'none');
+  res.setHeader('X-Download-Options', 'noopen');
+  res.setHeader('X-DNS-Prefetch-Control', 'off');
+  
+  // Enhanced CSP to prevent phishing and improve security
+  const cspDirectives = {
+    'default-src': ["'self'"],
+    'script-src': ["'self'", "'unsafe-inline'"],
+    'style-src': ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com', 'https://fonts.gstatic.com'],
+    'img-src': ["'self'", 'data:', 'https:', 'blob:'],
+    'font-src': ["'self'", 'https://fonts.gstatic.com'],
+    'connect-src': ["'self'", 'https:', 'wss:'],
+    'form-action': ["'self'"],
+    'frame-ancestors': ["'none'"],
+    'base-uri': ["'self'"],
+    'object-src': ["'none'"],
+    'upgrade-insecure-requests': []
+  };
 
-  // Content Security Policy - Environment specific
   if (process.env.NODE_ENV === 'production') {
-    // Production CSP - Secure and restrictive
-    res.setHeader('Content-Security-Policy',
-      "default-src 'self'; " +
-      "script-src 'self' 'unsafe-inline'; " +
-      "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://fonts.gstatic.com; " +
-      "img-src 'self' data: https:; " +
-      "font-src 'self' https://fonts.googleapis.com https://fonts.gstatic.com; " +
-      "connect-src 'self'; " +
-      "object-src 'none'; " +
-      "base-uri 'self'; " +
-      "upgrade-insecure-requests;"
-    );
+    cspDirectives['connect-src'] = ["'self'", 'https:'];
+    cspDirectives['script-src'] = ["'self'"]; // Remove unsafe-inline in production
   } else {
-    // Development CSP - More permissive for development tools
-    res.setHeader('Content-Security-Policy',
-      "default-src 'self' http://localhost:*; " +
-      "script-src 'self' 'unsafe-inline' 'unsafe-eval'; " +
-      "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://fonts.gstatic.com; " +
-      "img-src 'self' data: https: http://localhost:*; " +
-      "font-src 'self' https://fonts.gstatic.com; " +
-      "connect-src 'self' https: http://localhost:* wss://localhost:*; " +
-      "object-src 'none'; " +
-      "base-uri 'self'; "
-    );
+    cspDirectives['connect-src'].push('http://localhost:*', 'ws://localhost:*', 'wss://localhost:*');
   }
 
-  // CORS configuration
-  res.setHeader('Access-Control-Allow-Origin', process.env.CORS_ORIGIN || '*');
+  const cspString = Object.entries(cspDirectives)
+    .map(([key, values]) => `${key} ${values.join(' ')}`)
+    .join('; ');
+  
+  res.setHeader('Content-Security-Policy', cspString);
+
+  // HSTS header for HTTPS enforcement (only on HTTPS connections)
+  if (req.secure || process.env.NODE_ENV === 'production') {
+    res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
+  }
+
+  // Enhanced CORS configuration
+  const allowedOrigin = process.env.CORS_ORIGIN || (process.env.NODE_ENV === 'production' ? process.env.DOMAIN_URL : '*');
+  res.setHeader('Access-Control-Allow-Origin', allowedOrigin);
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, X-CSRF-Token');
   res.setHeader('Access-Control-Allow-Credentials', 'true');
+  res.setHeader('Access-Control-Max-Age', '86400'); // 24 hours
 
   if (req.method === 'OPTIONS') {
     res.sendStatus(200);
@@ -65,6 +74,17 @@ app.use((req, res, next) => {
 
   next();
 });
+
+// HTTPS Redirect middleware for production
+if (process.env.NODE_ENV === 'production' && process.env.HTTPS_REDIRECT === 'true') {
+  app.use((req, res, next) => {
+    if (!req.secure && req.get('x-forwarded-proto') !== 'https') {
+      const httpsUrl = `https://${req.get('host')}${req.url}`;
+      return res.redirect(301, httpsUrl);
+    }
+    next();
+  });
+}
 
 // Rate limiting (basic implementation)
 const requestCounts = new Map();

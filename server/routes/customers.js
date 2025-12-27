@@ -284,6 +284,16 @@ router.get('/', async (req, res) => {
       // In production, this should require admin authentication
       const customers = await Customer.find().limit(50); // Limit for performance
       res.json(customers);
+      
+      // Debug: Log first customer to check if last_milk_quantity exists
+      if (customers.length > 0) {
+        console.log('First customer data:', {
+          _id: customers[0]._id,
+          name: customers[0].name,
+          last_milk_quantity: customers[0].last_milk_quantity,
+          delivery_time: customers[0].delivery_time
+        });
+      }
     }
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -407,6 +417,67 @@ router.post('/sync-receivable-accounts', auth, authorizeAdmin, async (req, res) 
     });
   } catch (err) {
     res.status(500).json({ message: err.message });
+  }
+});
+
+// Update last_milk_quantity for existing customers (admin only)
+router.post('/update-last-milk-quantity', auth, authorizeAdmin, async (req, res) => {
+  try {
+    console.log('Starting update of last_milk_quantity for existing customers...');
+    
+    // Find customers who don't have last_milk_quantity set or have it as null/undefined
+    const result = await Customer.updateMany(
+      { 
+        $or: [
+          { last_milk_quantity: { $exists: false } },
+          { last_milk_quantity: null },
+          { last_milk_quantity: { $lt: 0 } }
+        ]
+      },
+      { 
+        $set: { 
+          last_milk_quantity: 1  // Default to 1 liter
+        }
+      }
+    );
+    
+    console.log(`Updated ${result.modifiedCount} customers with default last_milk_quantity`);
+    
+    // Also set reasonable defaults based on delivery time for customers with delivery_time === 'both'
+    const bothDeliveryResult = await Customer.updateMany(
+      { 
+        delivery_time: 'both',
+        $or: [
+          { last_milk_quantity: { $exists: false } },
+          { last_milk_quantity: null },
+          { last_milk_quantity: { $lt: 2 } }
+        ]
+      },
+      { 
+        $set: { 
+          last_milk_quantity: 2  // Default to 2 liters for both delivery times
+        }
+      }
+    );
+    
+    console.log(`Updated ${bothDeliveryResult.modifiedCount} customers with both delivery time to 2 liters`);
+    
+    // Get updated count
+    const totalCustomers = await Customer.countDocuments();
+    const customersWithLastMilkQuantity = await Customer.countDocuments({ last_milk_quantity: { $exists: true, $ne: null } });
+    
+    res.json({
+      message: 'Migration completed successfully!',
+      defaultUpdated: result.modifiedCount,
+      bothDeliveryUpdated: bothDeliveryResult.modifiedCount,
+      totalCustomers,
+      customersWithLastMilkQuantity,
+      databaseName: 'hareram_dudhwale'
+    });
+    
+  } catch (error) {
+    console.error('Error updating last_milk_quantity:', error);
+    res.status(500).json({ message: error.message });
   }
 });
 

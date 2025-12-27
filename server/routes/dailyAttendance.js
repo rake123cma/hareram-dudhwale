@@ -56,6 +56,16 @@ router.post('/', auth, authorizeAdmin, async (req, res) => {
       existingAttendance.additional_products = additional_products || [];
       existingAttendance.notes = notes;
       const updatedAttendance = await existingAttendance.save();
+      
+      // Update customer's last milk quantity if present
+      if (status === 'present' && milk_quantity > 0) {
+        console.log(`Updating last_milk_quantity for customer ${customer_id} to ${milk_quantity}`);
+        await Customer.findByIdAndUpdate(customer_id, {
+          last_milk_quantity: milk_quantity
+        });
+        console.log(`Successfully updated last_milk_quantity for customer ${customer_id}`);
+      }
+      
       return res.json(updatedAttendance);
     } else {
       // Create new attendance record
@@ -68,6 +78,16 @@ router.post('/', auth, authorizeAdmin, async (req, res) => {
         notes
       });
       const newAttendance = await attendance.save();
+      
+      // Update customer's last milk quantity if present
+      if (status === 'present' && milk_quantity > 0) {
+        console.log(`Creating new attendance: Updating last_milk_quantity for customer ${customer_id} to ${milk_quantity}`);
+        await Customer.findByIdAndUpdate(customer_id, {
+          last_milk_quantity: milk_quantity
+        });
+        console.log(`Successfully updated last_milk_quantity for customer ${customer_id}`);
+      }
+      
       const populatedAttendance = await DailyAttendance.findById(newAttendance._id)
         .populate('customer_id', 'name phone delivery_time subscription_amount price_per_liter');
       return res.status(201).json(populatedAttendance);
@@ -117,6 +137,15 @@ router.post('/bulk', auth, async (req, res) => {
     // Create sale records for milk and additional products
     for (const attendance of results) {
       try {
+        // Always update customer's last milk quantity if present
+        if (attendance.status === 'present' && attendance.milk_quantity > 0) {
+          console.log(`Updating last_milk_quantity for customer ${attendance.customer_id} to ${attendance.milk_quantity}`);
+          await Customer.findByIdAndUpdate(attendance.customer_id, {
+            last_milk_quantity: attendance.milk_quantity
+          });
+          console.log(`Successfully updated last_milk_quantity for customer ${attendance.customer_id}`);
+        }
+
         // Check for existing milk sale for this customer on this date
         const existingMilkSale = await Sale.findOne({
           date: new Date(date),

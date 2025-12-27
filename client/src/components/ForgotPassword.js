@@ -62,9 +62,25 @@ const ForgotPassword = () => {
       <div className="bg-white rounded-2xl shadow-2xl p-10 w-full max-w-md text-center">
         <h2 className="bg-gradient-to-r from-purple-400 via-pink-500 to-yellow-400 bg-clip-text text-transparent mb-2.5 text-4xl font-bold">Hareram DudhWale</h2>
         <p className="text-gray-600 mb-7.5 text-lg">Reset Your Password</p>
+        
+        {/* Security Trust Indicators */}
+        <div className="flex items-center justify-center space-x-4 mb-4 text-gray-500">
+          <div className="flex items-center space-x-1">
+            <svg className="w-4 h-4 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
+            </svg>
+            <span className="text-xs font-medium">Secure Process</span>
+          </div>
+          <div className="flex items-center space-x-1">
+            <svg className="w-4 h-4 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+            </svg>
+            <span className="text-xs font-medium">SSL Protected</span>
+          </div>
+        </div>
 
         {step === 1 ? (
-          <form onSubmit={handleSendOTP}>
+          <form onSubmit={handleSendOTP} autoComplete="on" noValidate>
             <h3 className="text-gray-800 mb-5 text-xl">Enter Your Mobile Number</h3>
             <div className="mb-5 text-left">
               <label className="block mb-[5px] font-semibold text-gray-700 text-sm">Mobile Number *</label>
@@ -76,7 +92,12 @@ const ForgotPassword = () => {
                 placeholder="10-digit mobile number"
                 pattern="[0-9]{10}"
                 maxLength="10"
+                autoComplete="tel"
+                autoCapitalize="none"
+                spellCheck="false"
+                inputMode="tel"
                 required
+                aria-label="Mobile number"
               />
             </div>
             <button
@@ -88,7 +109,7 @@ const ForgotPassword = () => {
             </button>
           </form>
         ) : (
-          <form onSubmit={handleResetPassword}>
+          <form onSubmit={handleResetPassword} autoComplete="on" noValidate>
             <h3 className="text-gray-800 mb-5 text-xl">Enter OTP and New Password</h3>
             <div className="mb-5 text-left">
               <label className="block mb-[5px] font-semibold text-gray-700 text-sm">OTP *</label>
@@ -100,7 +121,12 @@ const ForgotPassword = () => {
                 placeholder="Enter 6-digit OTP"
                 pattern="[0-9]{6}"
                 maxLength="6"
+                autoComplete="one-time-code"
+                autoCapitalize="none"
+                spellCheck="false"
+                inputMode="numeric"
                 required
+                aria-label="OTP code"
               />
             </div>
             <div className="mb-5 text-left">
@@ -111,7 +137,11 @@ const ForgotPassword = () => {
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
                 placeholder="Enter new password"
+                autoComplete="new-password"
+                autoCapitalize="none"
+                spellCheck="false"
                 required
+                aria-label="New password"
               />
             </div>
             <div className="mb-5 text-left">
@@ -122,7 +152,11 @@ const ForgotPassword = () => {
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 placeholder="Confirm new password"
+                autoComplete="new-password"
+                autoCapitalize="none"
+                spellCheck="false"
                 required
+                aria-label="Confirm new password"
               />
             </div>
             <button
@@ -139,6 +173,20 @@ const ForgotPassword = () => {
           <p className="m-0 text-gray-600 text-sm">
             Remember your password? <a href="/login" className="text-blue-500 no-underline font-bold hover:underline">Login here</a>
           </p>
+          
+          {/* Security Notice */}
+          <div className="mt-3 p-2 bg-gray-50 rounded-lg">
+            <p className="text-gray-600 text-xs m-0 text-center">
+              🔒 Your information is protected with bank-level security
+            </p>
+          </div>
+          
+          {/* Contact Information */}
+          <div className="mt-2 text-center">
+            <p className="text-gray-500 text-xs m-0">
+              Need help? Contact: 6206696267
+            </p>
+          </div>
         </div>
       </div>
     </div>

@@ -234,56 +234,135 @@ router.post('/register-admin-user', async (req, res) => {
   }
 });
 
-// Login
+// Enhanced Login with proper error handling and security
 router.post('/login', async (req, res) => {
   const { username, password } = req.body;
+  
+  // Input validation
+  if (!username || !password) {
+    return res.status(400).json({ message: 'Username and password are required' });
+  }
+  
+  if (username.length < 3 || password.length < 1) {
+    return res.status(400).json({ message: 'Invalid username or password format' });
+  }
+  
   try {
+    console.log('🔐 Login attempt for username:', username);
+    
     const user = await User.findOne({ username });
+    console.log('👤 User found:', !!user, user ? `Role: ${user.role}` : 'No user');
 
-    // Check password
-    const isValidPassword = user && await bcrypt.compare(password, user.password);
-
-    if (!user || !isValidPassword) {
+    if (!user) {
+      console.log('❌ Login failed: User not found');
+      return res.status(401).json({ message: 'Invalid credentials' });
+    }
+    
+    if (!user.password) {
+      console.log('❌ Login failed: No password set');
       return res.status(401).json({ message: 'Invalid credentials' });
     }
 
+    // Check password
+    const isValidPassword = await bcrypt.compare(password, user.password);
+    console.log('🔑 Password validation:', isValidPassword);
+
+    if (!isValidPassword) {
+      console.log('❌ Login failed: Invalid password');
+      return res.status(401).json({ message: 'Invalid credentials' });
+    }
+    
+    // Generate tokens
     const token = jwt.sign({ id: user._id, role: user.role, customer_id: user.customer_id }, process.env.JWT_SECRET, { expiresIn: '1h' });
     const refreshToken = jwt.sign({ id: user._id }, process.env.JWT_REFRESH_SECRET, { expiresIn: '7d' });
+    
+    console.log('✅ Login successful for:', username);
+    
     res.json({
       token,
       refreshToken,
       user: { id: user._id, username: user.username, role: user.role }
     });
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    console.error('💥 Login error:', err.message);
+    res.status(500).json({ message: 'Internal server error during authentication' });
   }
 });
 
-// Alternative: Simple Email/Password Authentication (works without Google OAuth)
+// Enhanced Email/Password/Phone Authentication with security checks
 router.post('/email-login', async (req, res) => {
   const { email, password } = req.body;
+  
+  // Input validation
+  if (!email || !password) {
+    return res.status(400).json({ message: 'Email/Mobile and password are required' });
+  }
+  
+  if (password.length < 1) {
+    return res.status(400).json({ message: 'Password is required' });
+  }
+  
   try {
-    // Find user by email
-    const user = await User.findOne({ $or: [{ email: email }, { username: email }] });
+    console.log('🔐 Login attempt for:', email);
+    
+    // Determine if input is email or mobile number
+    const isEmail = email.includes('@');
+    const isMobile = /^\d{10}$/.test(email.replace(/\s+/g, ''));
+    
+    if (!isEmail && !isMobile) {
+      console.log('❌ Invalid input format');
+      return res.status(400).json({ message: 'Please enter a valid email address or 10-digit mobile number' });
+    }
+    
+    let searchQuery;
+    if (isEmail) {
+      // Search by email or username
+      searchQuery = { $or: [{ email: email }, { username: email }] };
+      console.log('📧 Searching by email/username:', email);
+    } else {
+      // Search by mobile number - need to find customer first, then user
+      console.log('📱 Searching by mobile number:', email);
+      
+      // First find customer by phone
+      const customer = await Customer.findOne({ phone: email });
+      if (!customer) {
+        console.log('❌ Customer not found with mobile:', email);
+        return res.status(401).json({ message: 'Invalid email/mobile or password' });
+      }
+      
+      // Then find user by customer_id
+      searchQuery = { customer_id: customer._id };
+      console.log('👤 Found customer, searching for user:', customer._id);
+    }
+    
+    const user = await User.findOne(searchQuery);
+    console.log('👤 User found:', !!user, user ? `Role: ${user.role}, Has password: ${!!user.password}` : 'No user');
 
     if (!user) {
-      return res.status(401).json({ message: 'User not found with this email' });
+      console.log('❌ Login failed: User not found');
+      return res.status(401).json({ message: 'Invalid email/mobile or password' });
     }
 
     // Check if user has a password (not just OAuth users)
     if (!user.password) {
+      console.log('❌ Login failed: OAuth-only user');
       return res.status(401).json({ message: 'Please use Google OAuth or contact admin to set a password' });
     }
 
     // Check password
     const isValidPassword = await bcrypt.compare(password, user.password);
+    console.log('🔑 Password validation:', isValidPassword);
 
     if (!isValidPassword) {
-      return res.status(401).json({ message: 'Invalid password' });
+      console.log('❌ Login failed: Invalid password');
+      return res.status(401).json({ message: 'Invalid email/mobile or password' });
     }
 
+    // Generate tokens
     const token = jwt.sign({ id: user._id, role: user.role, customer_id: user.customer_id }, process.env.JWT_SECRET, { expiresIn: '1h' });
     const refreshToken = jwt.sign({ id: user._id }, process.env.JWT_REFRESH_SECRET, { expiresIn: '7d' });
+    
+    console.log('✅ Login successful for:', email);
 
     res.json({
       token,
@@ -291,7 +370,8 @@ router.post('/email-login', async (req, res) => {
       user: { id: user._id, username: user.username, role: user.role, email: user.email }
     });
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    console.error('💥 Email login error:', err.message);
+    res.status(500).json({ message: 'Internal server error during authentication' });
   }
 });
 
@@ -570,6 +650,32 @@ router.get('/google/callback',
     }
   }
 );
+
+// Debug endpoint for authentication troubleshooting
+router.get('/debug-users', async (req, res) => {
+  try {
+    const users = await User.find({}, { password: 0 }); // Exclude passwords for security
+    console.log('👥 Total users in database:', users.length);
+    
+    const userSummary = users.map(user => ({
+      id: user._id,
+      username: user.username,
+      email: user.email,
+      role: user.role,
+      hasPassword: !!user.password,
+      customer_id: user.customer_id
+    }));
+    
+    res.json({
+      totalUsers: users.length,
+      users: userSummary,
+      timestamp: new Date().toISOString()
+    });
+  } catch (err) {
+    console.error('💥 Debug error:', err.message);
+    res.status(500).json({ message: 'Failed to fetch user data' });
+  }
+});
 
 // Check Google OAuth status
 router.get('/google/status', (req, res) => {

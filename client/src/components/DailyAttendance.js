@@ -54,15 +54,23 @@ const DailyAttendance = () => {
 
       // If no attendance records exist, initialize with all customers as absent
       if (attendanceData.length === 0) {
-        const initialAttendance = customers.map(customer => ({
-          customer_id: customer._id,
-          customer: customer,
-          status: 'absent',
-          milk_quantity: customer.delivery_time === 'both' ? 2 : 1, // Default quantities
-          additional_products: [],
-          notes: '',
-          _id: null // New record
-        }));
+        console.log('Initializing attendance for new date:', selectedDate);
+        console.log('Customers data:', customers.map(c => ({ name: c.name, last_milk_quantity: c.last_milk_quantity, delivery_time: c.delivery_time })));
+        
+        const initialAttendance = customers.map(customer => {
+          const defaultMilkQuantity = customer.delivery_time === 'both' ? 2 : customer.last_milk_quantity || 1;
+          console.log(`Customer ${customer.name}: delivery_time=${customer.delivery_time}, last_milk_quantity=${customer.last_milk_quantity}, default=${defaultMilkQuantity}`);
+          
+          return {
+            customer_id: customer._id,
+            customer: customer,
+            status: 'unmarked', // Changed from 'absent' to 'unmarked'
+            milk_quantity: defaultMilkQuantity, // Use last milk quantity as default
+            additional_products: [],
+            notes: '',
+            _id: null // New record
+          };
+        });
         setAttendance(initialAttendance);
       } else {
         // Merge existing attendance with customer data
@@ -187,6 +195,9 @@ const DailyAttendance = () => {
         const customerId = item.customer_id?._id || item.customer_id;
         if (!customerId) return null; // Skip items without valid customer ID
 
+        // Only save marked attendance (present or absent), skip unmarked
+        if (item.status === 'unmarked') return null;
+
         return {
           customer_id: customerId,
           status: item.status,
@@ -194,7 +205,7 @@ const DailyAttendance = () => {
           additional_products: item.additional_products || [],
           notes: item.notes
         };
-      }).filter(item => item !== null); // Remove null items
+      }).filter(item => item !== null); // Remove null items and unmarked items
 
       const token = localStorage.getItem('token');
       const config = { headers: { Authorization: `Bearer ${token}` } };
@@ -242,6 +253,10 @@ const DailyAttendance = () => {
 
   const getAbsentCount = () => {
     return attendance.filter(item => item.status === 'absent').length;
+  };
+
+  const getUnmarkedCount = () => {
+    return attendance.filter(item => item.status === 'unmarked').length;
   };
 
   const getFilteredAttendance = () => {
@@ -297,6 +312,10 @@ const DailyAttendance = () => {
         <div className="bg-white p-6 rounded-xl shadow-lg text-center border-l-4 border-red-500 hover:shadow-xl transition-all duration-300">
           <h3 className="text-gray-700 text-lg font-semibold mb-2">Absent Today</h3>
           <p className="text-3xl font-bold text-gray-800">{getAbsentCount()}</p>
+        </div>
+        <div className="bg-white p-6 rounded-xl shadow-lg text-center border-l-4 border-gray-500 hover:shadow-xl transition-all duration-300">
+          <h3 className="text-gray-700 text-lg font-semibold mb-2">Unmarked</h3>
+          <p className="text-3xl font-bold text-gray-800">{getUnmarkedCount()}</p>
         </div>
         <div className="bg-white p-6 rounded-xl shadow-lg text-center border-l-4 border-yellow-500 hover:shadow-xl transition-all duration-300">
           <h3 className="text-gray-700 text-lg font-semibold mb-2">Total Milk (L)</h3>
@@ -385,8 +404,13 @@ const DailyAttendance = () => {
                     <select
                       value={item.status}
                       onChange={(e) => updateAttendance(customer?._id, 'status', e.target.value)}
-                      className={`px-3 py-2 border rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${item.status === 'present' ? 'bg-green-100 text-green-800 border-green-300' : 'bg-red-100 text-red-800 border-red-300'}`}
+                      className={`px-3 py-2 border rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                        item.status === 'present' ? 'bg-green-100 text-green-800 border-green-300' :
+                        item.status === 'absent' ? 'bg-red-100 text-red-800 border-red-300' :
+                        'bg-gray-100 text-gray-800 border-gray-300'
+                      }`}
                     >
+                      <option value="unmarked">Unmarked</option>
                       <option value="present">Present</option>
                       <option value="absent">Absent</option>
                     </select>
@@ -398,7 +422,7 @@ const DailyAttendance = () => {
                       min="0"
                       value={item.milk_quantity || 0}
                       onChange={(e) => updateAttendance(customer?._id, 'milk_quantity', parseFloat(e.target.value) || 0)}
-                      disabled={item.status === 'absent'}
+                      disabled={item.status === 'absent' || item.status === 'unmarked'}
                       className="px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent w-20 disabled:bg-gray-100 disabled:text-gray-400"
                       placeholder="0"
                     />
@@ -487,7 +511,11 @@ const DailyAttendance = () => {
           </li>
           <li className="text-gray-700 flex items-start gap-2">
             <span className="text-green-600 mt-1">•</span>
-            For present customers, enter the milk quantity they took
+            Unmarked customers won't be saved - mark them as Present or Absent
+          </li>
+          <li className="text-gray-700 flex items-start gap-2">
+            <span className="text-green-600 mt-1">•</span>
+            For present customers, enter the milk quantity they took (default from last time)
           </li>
           <li className="text-gray-700 flex items-start gap-2">
             <span className="text-green-600 mt-1">•</span>
