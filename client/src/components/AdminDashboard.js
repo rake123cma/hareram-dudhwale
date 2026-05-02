@@ -33,6 +33,7 @@ const AdminDashboard = () => {
     last_insemination_date: ''
   });
   const [cowForm, setCowForm] = useState({
+    listing_id: '',
     name: '',
     type: 'cow',
     date_of_birth: '',
@@ -147,6 +148,7 @@ const AdminDashboard = () => {
   const handleEditCow = (cow) => {
     setEditingCow(cow);
     setCowForm({
+      listing_id: cow.listing_id || '',
       name: cow.name || '',
       type: cow.type || 'cow',
       date_of_birth: cow.date_of_birth ? new Date(cow.date_of_birth).toISOString().split('T')[0] : '',
@@ -159,6 +161,7 @@ const AdminDashboard = () => {
 
   const resetCowForm = () => {
     setCowForm({
+      listing_id: '',
       name: '',
       type: 'cow',
       date_of_birth: '',
@@ -175,7 +178,7 @@ const AdminDashboard = () => {
       const config = { headers: { Authorization: `Bearer ${token}` } };
 
       // Validate required fields
-      if (!cowForm.name || !cowForm.type || !cowForm.date_of_birth) {
+      if (!cowForm.listing_id || !cowForm.name || !cowForm.type || !cowForm.date_of_birth) {
         Swal.fire('Error', 'Please fill in all required fields', 'error');
         return;
       }
@@ -197,12 +200,14 @@ const AdminDashboard = () => {
       }
 
       const cowData = {
+        listing_id: cowForm.listing_id,
         name: cowForm.name,
         type: cowForm.type,
         date_of_birth: new Date(dobYear, dobMonth, dobDay),
         date_of_entry: entryDate,
         source: cowForm.source || '',
-        health_summary: cowForm.health_summary || ''
+        health_summary: cowForm.health_summary || '',
+        status: editingCow ? undefined : 'active'
       };
 
       // Sending cattle data
@@ -462,7 +467,17 @@ const AdminDashboard = () => {
         </div>
         <div className="overflow-y-auto max-h-[calc(90vh-120px)] p-6">
           <form onSubmit={handleCowSubmit} className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-white mb-2 text-sm font-medium">Tag ID / Listing ID *</label>
+                <input
+                  type="text"
+                  value={cowForm.listing_id}
+                  onChange={(e) => setCowForm({...cowForm, listing_id: e.target.value})}
+                  className="w-full p-3 bg-primary-800 border border-secondary-600 rounded-lg text-white text-sm focus:outline-none focus:border-accent-blue focus:ring-2 focus:ring-accent-blue/20 transition-all duration-200"
+                  required
+                />
+              </div>
               <div>
                 <label className="block text-white mb-2 text-sm font-medium">Name *</label>
                 <input
