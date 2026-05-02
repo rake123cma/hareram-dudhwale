@@ -108,20 +108,31 @@ const AdminDashboard = () => {
 
     cows.forEach(cow => {
       // Check for upcoming calving dates
-      if (cow.expected_calving_date && cow.status === 'pregnant') {
-        const calvingDate = new Date(cow.expected_calving_date);
-        const daysUntilCalving = Math.ceil((calvingDate - today) / (1000 * 60 * 60 * 24));
+      if (cow.status === 'pregnant') {
+        let calvingDate;
+        if (cow.insemination_records && cow.insemination_records.length > 0) {
+          const lastInsem = new Date(cow.insemination_records[cow.insemination_records.length - 1].insemination_date);
+          const gestationMonths = cow.type === 'buffalo' ? 10 : 9;
+          lastInsem.setMonth(lastInsem.getMonth() + gestationMonths);
+          calvingDate = lastInsem;
+        } else if (cow.expected_calving_date) {
+          calvingDate = new Date(cow.expected_calving_date);
+        }
+        
+        if (calvingDate) {
+          const daysUntilCalving = Math.ceil((calvingDate - today) / (1000 * 60 * 60 * 24));
 
-        if (daysUntilCalving >= -15 && daysUntilCalving <= 15) {
-          reminders.push({
-            type: 'calving',
-            cow: cow.name,
-            date: calvingDate,
-            days: daysUntilCalving,
-            message: daysUntilCalving < 0 
-              ? `${cow.name} की बच्चा देने की तारीख ${Math.abs(daysUntilCalving)} दिन पहले बीत चुकी है` 
-              : `${cow.name} को ${daysUntilCalving} दिन में बच्चा देना है`
-          });
+          if (daysUntilCalving >= -15 && daysUntilCalving <= 15) {
+            reminders.push({
+              type: 'calving',
+              cow: cow.name,
+              date: calvingDate,
+              days: daysUntilCalving,
+              message: daysUntilCalving < 0 
+                ? `${cow.name} की बच्चा देने की तारीख ${Math.abs(daysUntilCalving)} दिन पहले बीत चुकी है` 
+                : `${cow.name} को ${daysUntilCalving} दिन में बच्चा देना है`
+            });
+          }
         }
       }
 
@@ -744,12 +755,21 @@ const AdminDashboard = () => {
                   {cow.insemination_records?.length > 0 ? (
                     <>
                       <div>सेमेन: {new Date(cow.insemination_records[cow.insemination_records.length - 1].insemination_date).toLocaleDateString('hi-IN')}</div>
-                      {cow.expected_calving_date && cow.status === 'pregnant' && (
+                      {cow.status === 'pregnant' && (
                         <div className="text-accent-blue font-semibold mt-1">
-                          संभावित बच्चा: {new Date(cow.expected_calving_date).toLocaleDateString('hi-IN')}
+                          संभावित बच्चा: {(() => {
+                            const lastInsem = new Date(cow.insemination_records[cow.insemination_records.length - 1].insemination_date);
+                            const gestationMonths = cow.type === 'buffalo' ? 10 : 9;
+                            lastInsem.setMonth(lastInsem.getMonth() + gestationMonths);
+                            return lastInsem.toLocaleDateString('hi-IN');
+                          })()}
                         </div>
                       )}
                     </>
+                  ) : cow.expected_calving_date && cow.status === 'pregnant' ? (
+                    <div className="text-accent-blue font-semibold mt-1">
+                      संभावित बच्चा: {new Date(cow.expected_calving_date).toLocaleDateString('hi-IN')}
+                    </div>
                   ) : '-'}
                 </td>
                 <td className="px-4 py-3 text-secondary-300 text-sm">
@@ -877,6 +897,12 @@ const AdminDashboard = () => {
           </div>
         `).join('')
       : '<p>कोई डीवॉर्मिंग रिकॉर्ड नहीं</p>';
+      
+    const expectedCalving = cow.insemination_records?.length > 0 && cow.status === 'pregnant' ? (() => {
+      const lastInsem = new Date(cow.insemination_records[cow.insemination_records.length - 1].insemination_date);
+      lastInsem.setMonth(lastInsem.getMonth() + (cow.type === 'buffalo' ? 10 : 9));
+      return lastInsem;
+    })() : cow.expected_calving_date ? new Date(cow.expected_calving_date) : null;
 
     Swal.fire({
       title: `${cow.name} (${cow.listing_id}) - पूरा इतिहास`,
@@ -914,7 +940,7 @@ const AdminDashboard = () => {
              <h4 style="color: #ef4444; border-bottom: 2px solid #ef4444; padding-bottom: 5px;">स्वास्थ्य जानकारी</h4>
              <p><strong>स्वास्थ्य सारांश:</strong> ${cow.health_summary || 'अच्छा'}</p>
              ${cow.last_deworming_date ? `<p><strong>अंतिम डीवॉर्मिंग:</strong> ${new Date(cow.last_deworming_date).toLocaleDateString('hi-IN')}</p>` : ''}
-             ${cow.expected_calving_date ? `<p><strong>अपेक्षित बच्चा देने की तारीख:</strong> ${new Date(cow.expected_calving_date).toLocaleDateString('hi-IN')}</p>` : ''}
+             ${expectedCalving ? `<p><strong>अपेक्षित बच्चा देने की तारीख:</strong> ${expectedCalving.toLocaleDateString('hi-IN')}</p>` : ''}
            </div>
          </div>
       `,
@@ -1073,6 +1099,15 @@ const AdminDashboard = () => {
                       ? selectedCow.calving_records[selectedCow.calving_records.length - 1]
                       : null;
 
+                    let expectedCalvingStr = null;
+                    if (lastInsemination && selectedCow?.status === 'pregnant') {
+                      const lastInsem = new Date(lastInsemination.insemination_date);
+                      lastInsem.setMonth(lastInsem.getMonth() + (selectedCow.type === 'buffalo' ? 10 : 9));
+                      expectedCalvingStr = lastInsem.toLocaleDateString('hi-IN');
+                    } else if (selectedCow?.expected_calving_date) {
+                      expectedCalvingStr = new Date(selectedCow.expected_calving_date).toLocaleDateString('hi-IN');
+                    }
+
                     return (
                       <>
                         {lastInsemination && (
@@ -1081,8 +1116,8 @@ const AdminDashboard = () => {
                         {lastCalving && (
                           <p className="m-0"><strong>अंतिम बच्चा:</strong> {new Date(lastCalving.calving_date).toLocaleDateString('hi-IN')}</p>
                         )}
-                        {selectedCow?.expected_calving_date && (
-                          <p className="m-0"><strong>अपेक्षित बच्चा:</strong> {new Date(selectedCow.expected_calving_date).toLocaleDateString('hi-IN')}</p>
+                        {expectedCalvingStr && (
+                          <p className="m-0"><strong>अपेक्षित बच्चा:</strong> {expectedCalvingStr}</p>
                         )}
                         <p className="m-0"><strong>कुल बच्चे:</strong> {selectedCow?.total_calvings || 0}</p>
                       </>
@@ -2016,16 +2051,27 @@ const AdminDashboard = () => {
             };
 
           case 'pregnant-cows':
-            const pregnantCowData = cows.filter(cow => cow.status === 'pregnant').map(cow => ({
-              listing_id: cow.listing_id,
-              name: cow.name,
-              type: cow.type,
-              last_insemination: cow.last_insemination_date ? new Date(cow.last_insemination_date).toLocaleDateString('hi-IN') : 'Unknown',
-              expected_calving: cow.expected_calving_date ? new Date(cow.expected_calving_date).toLocaleDateString('hi-IN') : 'Unknown',
-              insemination_count: cow.insemination_records?.length || 0,
-              total_calvings: cow.total_calvings || 0,
-              current_status: cow.status
-            }));
+            const pregnantCowData = cows.filter(cow => cow.status === 'pregnant').map(cow => {
+              let expectedCalvingStr = 'Unknown';
+              if (cow.insemination_records?.length > 0) {
+                const lastInsem = new Date(cow.insemination_records[cow.insemination_records.length - 1].insemination_date);
+                lastInsem.setMonth(lastInsem.getMonth() + (cow.type === 'buffalo' ? 10 : 9));
+                expectedCalvingStr = lastInsem.toLocaleDateString('hi-IN');
+              } else if (cow.expected_calving_date) {
+                expectedCalvingStr = new Date(cow.expected_calving_date).toLocaleDateString('hi-IN');
+              }
+              
+              return {
+                listing_id: cow.listing_id,
+                name: cow.name,
+                type: cow.type,
+                last_insemination: cow.insemination_records?.length > 0 ? new Date(cow.insemination_records[cow.insemination_records.length - 1].insemination_date).toLocaleDateString('hi-IN') : (cow.last_insemination_date ? new Date(cow.last_insemination_date).toLocaleDateString('hi-IN') : 'Unknown'),
+                expected_calving: expectedCalvingStr,
+                insemination_count: cow.insemination_records?.length || 0,
+                total_calvings: cow.total_calvings || 0,
+                current_status: cow.status
+              };
+            });
 
             return {
               title: 'गर्भवती गाय/भैंस रिपोर्ट',

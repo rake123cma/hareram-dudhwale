@@ -150,26 +150,38 @@ cowSchema.pre('save', function(next) {
 // Auto-calculate expected calving date based on type and insemination date
 cowSchema.pre('save', function(next) {
   try {
-    if (this.last_insemination_date) {
-      // Ensure we have a proper Date object
-      let inseminationDate;
-      if (this.last_insemination_date instanceof Date) {
-        inseminationDate = new Date(this.last_insemination_date);
-      } else {
-        // Parse string date manually to avoid timezone issues
-        const dateStr = this.last_insemination_date.toString();
-        const dateParts = dateStr.split('T')[0].split('-'); // Handle ISO string
-        const year = parseInt(dateParts[0]);
-        const month = parseInt(dateParts[1]) - 1; // JavaScript months are 0-based
-        const day = parseInt(dateParts[2]);
-        inseminationDate = new Date(year, month, day);
+    // Update last insemination date from insemination records
+    if (this.insemination_records && Array.isArray(this.insemination_records) && this.insemination_records.length > 0) {
+      const latestInsemination = this.insemination_records[this.insemination_records.length - 1];
+      if (latestInsemination && latestInsemination.insemination_date) {
+        this.last_insemination_date = latestInsemination.insemination_date;
       }
+    }
 
-      const gestationMonths = this.type === 'buffalo' ? 10 : 9; // Buffalo: 10 months, Cow: 9 months
-      inseminationDate.setMonth(inseminationDate.getMonth() + gestationMonths);
-      this.expected_calving_date = inseminationDate;
+    // Only recalculate expected calving date if insemination records/date was modified 
+    // or if expected_calving_date is missing but we have an insemination date
+    if (this.isModified('last_insemination_date') || this.isModified('insemination_records') || (this.last_insemination_date && !this.expected_calving_date)) {
+      if (this.last_insemination_date) {
+        // Ensure we have a proper Date object
+        let inseminationDate;
+        if (this.last_insemination_date instanceof Date) {
+          inseminationDate = new Date(this.last_insemination_date);
+        } else {
+          // Parse string date manually to avoid timezone issues
+          const dateStr = this.last_insemination_date.toString();
+          const dateParts = dateStr.split('T')[0].split('-'); // Handle ISO string
+          const year = parseInt(dateParts[0]);
+          const month = parseInt(dateParts[1]) - 1; // JavaScript months are 0-based
+          const day = parseInt(dateParts[2]);
+          inseminationDate = new Date(year, month, day);
+        }
 
-      console.log(`Calculated expected delivery for ${this.name}: Crossing ${this.last_insemination_date} -> Delivery ${this.expected_calving_date}`);
+        const gestationMonths = this.type === 'buffalo' ? 10 : 9; // Buffalo: 10 months, Cow: 9 months
+        inseminationDate.setMonth(inseminationDate.getMonth() + gestationMonths);
+        this.expected_calving_date = inseminationDate;
+
+        console.log(`Calculated expected delivery for ${this.name}: Crossing ${this.last_insemination_date} -> Delivery ${this.expected_calving_date}`);
+      }
     }
 
     // Calculate total calvings from calving records
