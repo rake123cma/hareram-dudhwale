@@ -103,21 +103,24 @@ const AdminDashboard = () => {
 
   const getUpcomingReminders = () => {
     const today = new Date();
+    today.setHours(0, 0, 0, 0); // normalize today to midnight
     const reminders = [];
 
     cows.forEach(cow => {
       // Check for upcoming calving dates
-      if (cow.expected_calving_date) {
+      if (cow.expected_calving_date && cow.status === 'pregnant') {
         const calvingDate = new Date(cow.expected_calving_date);
         const daysUntilCalving = Math.ceil((calvingDate - today) / (1000 * 60 * 60 * 24));
 
-        if (daysUntilCalving >= 0 && daysUntilCalving <= 7) {
+        if (daysUntilCalving >= -15 && daysUntilCalving <= 15) {
           reminders.push({
             type: 'calving',
             cow: cow.name,
             date: calvingDate,
             days: daysUntilCalving,
-            message: `${cow.name} को ${daysUntilCalving} दिन में बच्चा देना है`
+            message: daysUntilCalving < 0 
+              ? `${cow.name} की बच्चा देने की तारीख ${Math.abs(daysUntilCalving)} दिन पहले बीत चुकी है` 
+              : `${cow.name} को ${daysUntilCalving} दिन में बच्चा देना है`
           });
         }
       }
@@ -129,13 +132,15 @@ const AdminDashboard = () => {
           const nextDewormingDate = new Date(lastDeworming.next_due_date);
           const daysUntilDeworming = Math.ceil((nextDewormingDate - today) / (1000 * 60 * 60 * 24));
 
-          if (daysUntilDeworming >= 0 && daysUntilDeworming <= 7) {
+          if (daysUntilDeworming >= -15 && daysUntilDeworming <= 15) {
             reminders.push({
               type: 'deworming',
               cow: cow.name,
               date: nextDewormingDate,
               days: daysUntilDeworming,
-              message: `${cow.name} को ${daysUntilDeworming} दिन में डीवॉर्मिंग करवानी है`
+              message: daysUntilDeworming < 0
+                ? `${cow.name} की डीवॉर्मिंग ${Math.abs(daysUntilDeworming)} दिन ओवरड्यू है`
+                : `${cow.name} की डीवॉर्मिंग ${daysUntilDeworming} दिन में बाकी है`
             });
           }
         }
@@ -169,6 +174,31 @@ const AdminDashboard = () => {
       source: '',
       health_summary: ''
     });
+  };
+
+  const handleDeleteCow = async (cowId) => {
+    const result = await Swal.fire({
+      title: 'क्या आप सुनिश्चित हैं?',
+      text: "आप इस पशु का रिकॉर्ड हटाना चाहते हैं। यह वापस नहीं किया जा सकेगा!",
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#d33',
+      cancelButtonColor: '#3085d6',
+      confirmButtonText: 'हाँ, डिलीट करें!',
+      cancelButtonText: 'रद्द करें'
+    });
+
+    if (result.isConfirmed) {
+      try {
+        const token = localStorage.getItem('token');
+        const config = { headers: { Authorization: `Bearer ${token}` } };
+        await axios.delete(`/api/cows/${cowId}`, config);
+        Swal.fire('डिलीट किया गया!', 'पशु का रिकॉर्ड हटा दिया गया है।', 'success');
+        fetchDashboardData();
+      } catch (err) {
+        Swal.fire('त्रुटि', 'रिकॉर्ड हटाने में समस्या हुई।', 'error');
+      }
+    }
   };
 
   const handleCowSubmit = async (e) => {
@@ -412,23 +442,24 @@ const AdminDashboard = () => {
               <FaCalendarCheck className="text-yellow-600" />
               आगामी रिमाइंडर ({reminders.length})
             </h4>
-            <div className="space-y-2">
-              {reminders.slice(0, 5).map((reminder, index) => (
-                <div key={index} className="flex items-center justify-between bg-white p-3 rounded border border-yellow-300">
+            <div className="space-y-2 max-h-60 overflow-y-auto pr-2">
+              {reminders.map((reminder, index) => (
+                <div key={index} className={`flex items-center justify-between bg-white p-3 rounded border ${reminder.days < 0 ? 'border-red-300' : 'border-yellow-300'}`}>
                   <div className="flex items-center gap-3">
                     <span className={`px-2 py-1 rounded text-xs font-semibold ${
                       reminder.type === 'calving' ? 'bg-pink-100 text-pink-800' : 'bg-green-100 text-green-800'
                     }`}>
                       {reminder.type === 'calving' ? 'बच्चा' : 'डीवॉर्मिंग'}
                     </span>
-                    <span className="text-gray-800">{reminder.message}</span>
+                    <span className={`text-sm ${reminder.days < 0 ? 'text-red-700 font-medium' : 'text-gray-800'}`}>{reminder.message}</span>
                   </div>
                   <span className={`px-2 py-1 rounded text-xs font-semibold ${
+                    reminder.days < 0 ? 'bg-red-600 text-white' :
                     reminder.days === 0 ? 'bg-red-100 text-red-800' :
-                    reminder.days <= 2 ? 'bg-orange-100 text-orange-800' :
+                    reminder.days <= 3 ? 'bg-orange-100 text-orange-800' :
                     'bg-blue-100 text-blue-800'
                   }`}>
-                    {reminder.days === 0 ? 'आज' : `${reminder.days} दिन`}
+                    {reminder.days < 0 ? 'ओवरड्यू' : reminder.days === 0 ? 'आज' : `${reminder.days} दिन`}
                   </span>
                 </div>
               ))}
@@ -685,12 +716,10 @@ const AdminDashboard = () => {
         <table className="w-full bg-primary-800 border border-secondary-700 rounded-lg">
           <thead className="bg-primary-900">
             <tr>
-              <th className="px-4 py-3 text-left text-white font-semibold border-b border-secondary-600">ID</th>
-              <th className="px-4 py-3 text-left text-white font-semibold border-b border-secondary-600">नाम</th>
-              <th className="px-4 py-3 text-left text-white font-semibold border-b border-secondary-600">प्रकार</th>
+              <th className="px-4 py-3 text-left text-white font-semibold border-b border-secondary-600">ID / नाम</th>
               <th className="px-4 py-3 text-left text-white font-semibold border-b border-secondary-600">स्थिति</th>
-              <th className="px-4 py-3 text-left text-white font-semibold border-b border-secondary-600">सेमेन रिकॉर्ड</th>
-              <th className="px-4 py-3 text-left text-white font-semibold border-b border-secondary-600">अंतिम बच्चा</th>
+              <th className="px-4 py-3 text-left text-white font-semibold border-b border-secondary-600">प्रेग्नेंसी जानकारी</th>
+              <th className="px-4 py-3 text-left text-white font-semibold border-b border-secondary-600">डीवॉर्मिंग जानकारी</th>
               <th className="px-4 py-3 text-left text-white font-semibold border-b border-secondary-600">दूध (ली/दिन)</th>
               <th className="px-4 py-3 text-center text-white font-semibold border-b border-secondary-600">क्रियाएं</th>
             </tr>
@@ -698,9 +727,10 @@ const AdminDashboard = () => {
           <tbody>
             {cows.map(cow => (
               <tr key={cow._id} className="border-b border-secondary-700 hover:bg-primary-750">
-                <td className="px-4 py-3 text-white font-medium">{cow.listing_id}</td>
-                <td className="px-4 py-3 text-white">{cow.name}</td>
-                <td className="px-4 py-3 text-secondary-300 capitalize">{cow.type || 'cow'}</td>
+                <td className="px-4 py-3 text-white font-medium">
+                  <div>{cow.listing_id}</div>
+                  <div className="text-secondary-300 text-sm">{cow.name} ({cow.type === 'cow' ? 'गाय' : 'भैंस'})</div>
+                </td>
                 <td className="px-4 py-3">
                   <span className={`px-2 py-1 rounded text-xs font-semibold ${
                     cow.status === 'active' ? 'bg-accent-green text-white' :
@@ -710,14 +740,31 @@ const AdminDashboard = () => {
                     'bg-secondary-600 text-white'
                   }`}>{cow.status}</span>
                 </td>
-                <td className="px-4 py-3 text-secondary-300">
-                  {cow.insemination_records?.length || 0} बार
+                <td className="px-4 py-3 text-secondary-300 text-sm">
+                  {cow.insemination_records?.length > 0 ? (
+                    <>
+                      <div>सेमेन: {new Date(cow.insemination_records[cow.insemination_records.length - 1].insemination_date).toLocaleDateString('hi-IN')}</div>
+                      {cow.expected_calving_date && cow.status === 'pregnant' && (
+                        <div className="text-accent-blue font-semibold mt-1">
+                          संभावित बच्चा: {new Date(cow.expected_calving_date).toLocaleDateString('hi-IN')}
+                        </div>
+                      )}
+                    </>
+                  ) : '-'}
                 </td>
-                <td className="px-4 py-3 text-secondary-300">
-                  {cow.calving_records?.length > 0 ?
-                    new Date(cow.calving_records[cow.calving_records.length - 1].calving_date).toLocaleDateString('hi-IN') :
-                    '-'
-                  }
+                <td className="px-4 py-3 text-secondary-300 text-sm">
+                  {cow.deworming_records?.length > 0 ? (
+                    <>
+                      <div>अंतिम: {new Date(cow.deworming_records[cow.deworming_records.length - 1].date).toLocaleDateString('hi-IN')}</div>
+                      {cow.deworming_records[cow.deworming_records.length - 1].next_due_date && (
+                        <div className={`font-semibold mt-1 ${
+                          new Date(cow.deworming_records[cow.deworming_records.length - 1].next_due_date) < new Date() ? 'text-red-500' : 'text-yellow-500'
+                        }`}>
+                          अगला: {new Date(cow.deworming_records[cow.deworming_records.length - 1].next_due_date).toLocaleDateString('hi-IN')}
+                        </div>
+                      )}
+                    </>
+                  ) : '-'}
                 </td>
                 <td className="px-4 py-3 text-secondary-300">
                   {cow.current_daily_milk || 0} L
@@ -764,6 +811,14 @@ const AdminDashboard = () => {
                       title="संपादित करें"
                     >
                       <FaEdit />
+                    </button>
+
+                    <button
+                      className="bg-red-500 text-white border-none px-2 py-1 rounded cursor-pointer flex items-center gap-1 text-xs hover:bg-red-600"
+                      onClick={() => handleDeleteCow(cow._id)}
+                      title="डिलीट करें"
+                    >
+                      <FaTrash />
                     </button>
                   </div>
                 </td>
