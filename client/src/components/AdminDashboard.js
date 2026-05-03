@@ -3187,6 +3187,114 @@ const AdminDashboard = () => {
     </div>
   );
 
+  const renderVaccinationForm = () => (
+    <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 p-4">
+      <div className="bg-primary-700 rounded-xl w-full max-w-2xl max-h-[90vh] overflow-hidden border border-secondary-700 shadow-2xl">
+        <div className="flex justify-between items-center p-6 border-b border-secondary-700">
+          <h3 className="text-white m-0 text-lg font-semibold">टीकाकरण रिकॉर्ड (Vaccination Record)</h3>
+          <button onClick={() => setShowVaccinationForm(false)} className="bg-secondary-600 hover:bg-secondary-500 text-white text-xl cursor-pointer p-2 w-10 h-10 flex items-center justify-center rounded-lg transition-colors duration-200">×</button>
+        </div>
+        <div className="overflow-y-auto max-h-[calc(90vh-120px)] p-6">
+          <form onSubmit={handleVaccinationSubmit} className="space-y-6">
+            <div className="p-5 bg-primary-800 rounded-lg border border-secondary-700">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div>
+                  <label className="block text-white mb-2 text-sm font-medium">तारीख (Date) *</label>
+                  <input type="date" value={vaccinationData.date} onChange={(e) => setVaccinationData({...vaccinationData, date: e.target.value})} className="w-full p-3 bg-primary-800 border border-secondary-600 rounded-lg text-white text-sm focus:outline-none focus:border-accent-blue" required />
+                </div>
+                <div>
+                  <label className="block text-white mb-2 text-sm font-medium">टीके का नाम (Vaccine Name) *</label>
+                  <input type="text" value={vaccinationData.vaccine_name} onChange={(e) => setVaccinationData({...vaccinationData, vaccine_name: e.target.value})} placeholder="e.g., FMD, Lumpy" className="w-full p-3 bg-primary-800 border border-secondary-600 rounded-lg text-white text-sm focus:outline-none focus:border-accent-blue" required />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div>
+                  <label className="block text-white mb-2 text-sm font-medium">अगले टीके की तारीख (Next Due)</label>
+                  <input type="date" value={vaccinationData.next_due_date} onChange={(e) => setVaccinationData({...vaccinationData, next_due_date: e.target.value})} className="w-full p-3 bg-primary-800 border border-secondary-600 rounded-lg text-white text-sm focus:outline-none focus:border-accent-blue" />
+                </div>
+                <div>
+                  <label className="block text-white mb-2 text-sm font-medium">लागत (Cost ₹)</label>
+                  <input type="number" step="0.01" value={vaccinationData.cost} onChange={(e) => setVaccinationData({...vaccinationData, cost: e.target.value})} placeholder="0.00" className="w-full p-3 bg-primary-800 border border-secondary-600 rounded-lg text-white text-sm focus:outline-none focus:border-accent-blue" />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-white mb-2 text-sm font-medium">अतिरिक्त जानकारी (Notes)</label>
+                <textarea
+                  value={vaccinationData.notes}
+                  onChange={(e) => setVaccinationData({...vaccinationData, notes: e.target.value})}
+                  rows="3"
+                  placeholder="Any additional details"
+                  className="w-full p-3 bg-primary-800 border border-secondary-600 rounded-lg text-white text-sm focus:outline-none focus:border-accent-blue resize-vertical"
+                />
+              </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-4 sm:justify-end pt-6 border-t border-secondary-700">
+              <button type="button" onClick={() => setShowVaccinationForm(false)} className="w-full sm:w-48 h-12 bg-secondary-600 hover:bg-secondary-500 text-white font-semibold rounded-xl border border-secondary-500 transition-all duration-300 shadow-md hover:shadow-lg transform hover:-translate-y-0.5">
+                Cancel
+              </button>
+              <button type="submit" className="w-full sm:w-48 h-12 bg-gradient-to-r from-accent-blue to-accent-blue-dark hover:from-accent-blue-dark hover:to-accent-blue text-white font-semibold rounded-xl border border-accent-blue transition-all duration-300 shadow-md hover:shadow-lg transform hover:-translate-y-0.5">
+                Save Record
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderBulkVaccinationForm = () => (
+    <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 p-4">
+      <div className="bg-primary-700 rounded-xl w-full max-w-2xl max-h-[90vh] overflow-hidden border border-secondary-700 shadow-2xl">
+        <div className="flex justify-between items-center p-6 border-b border-secondary-700">
+          <h3 className="text-white m-0 text-lg font-semibold">सामूहिक टीकाकरण (Bulk Vaccination)</h3>
+          <button onClick={() => setShowBulkVaccinationForm(false)} className="bg-secondary-600 hover:bg-secondary-500 text-white text-xl cursor-pointer p-2 w-10 h-10 flex items-center justify-center rounded-lg transition-colors duration-200">×</button>
+        </div>
+        <div className="overflow-y-auto max-h-[calc(90vh-120px)] p-6">
+          <div className="mb-4 bg-pink-900/30 border border-pink-500/50 p-4 rounded-lg">
+            <p className="text-white m-0 text-sm">आप <strong>{selectedBulkCows.length}</strong> पशुओं का टीकाकरण कर रहे हैं。</p>
+          </div>
+          <form onSubmit={handleBulkVaccinationSubmit} className="space-y-6">
+            <div className="p-5 bg-primary-800 rounded-lg border border-secondary-700">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div>
+                  <label className="block text-white mb-2 text-sm font-medium">तारीख (Date) *</label>
+                  <input type="date" value={bulkVaccinationData.date} onChange={(e) => setBulkVaccinationData({...bulkVaccinationData, date: e.target.value})} className="w-full p-3 bg-primary-800 border border-secondary-600 rounded-lg text-white text-sm focus:outline-none focus:border-accent-blue" required />
+                </div>
+                <div>
+                  <label className="block text-white mb-2 text-sm font-medium">टीके का नाम (Vaccine) *</label>
+                  <input type="text" value={bulkVaccinationData.vaccine_name} onChange={(e) => setBulkVaccinationData({...bulkVaccinationData, vaccine_name: e.target.value})} placeholder="e.g., FMD, Lumpy" className="w-full p-3 bg-primary-800 border border-secondary-600 rounded-lg text-white text-sm focus:outline-none focus:border-accent-blue" required />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div>
+                  <label className="block text-white mb-2 text-sm font-medium">अगले टीके की तारीख (Next Due)</label>
+                  <input type="date" value={bulkVaccinationData.next_due_date} onChange={(e) => setBulkVaccinationData({...bulkVaccinationData, next_due_date: e.target.value})} className="w-full p-3 bg-primary-800 border border-secondary-600 rounded-lg text-white text-sm focus:outline-none focus:border-accent-blue" />
+                </div>
+                <div>
+                  <label className="block text-white mb-2 text-sm font-medium">लागत प्रति पशु (Cost/Cow ₹)</label>
+                  <input type="number" step="0.01" value={bulkVaccinationData.cost_per_cow} onChange={(e) => setBulkVaccinationData({...bulkVaccinationData, cost_per_cow: e.target.value})} placeholder="0.00" className="w-full p-3 bg-primary-800 border border-secondary-600 rounded-lg text-white text-sm focus:outline-none focus:border-accent-blue" />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-white mb-2 text-sm font-medium">अतिरिक्त जानकारी (Notes)</label>
+                <textarea value={bulkVaccinationData.notes} onChange={(e) => setBulkVaccinationData({...bulkVaccinationData, notes: e.target.value})} rows="3" placeholder="Any additional details" className="w-full p-3 bg-primary-800 border border-secondary-600 rounded-lg text-white text-sm focus:outline-none focus:border-accent-blue resize-vertical" />
+              </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-4 sm:justify-end pt-6 border-t border-secondary-700">
+              <button type="button" onClick={() => setShowBulkVaccinationForm(false)} className="w-full sm:w-48 h-12 bg-secondary-600 hover:bg-secondary-500 text-white font-semibold rounded-xl border border-secondary-500 transition-all duration-300 shadow-md hover:shadow-lg transform hover:-translate-y-0.5">Cancel</button>
+              <button type="submit" className="w-full sm:w-48 h-12 bg-gradient-to-r from-pink-600 to-pink-700 hover:from-pink-700 hover:to-pink-800 text-white font-semibold rounded-xl border border-pink-600 transition-all duration-300 shadow-md hover:shadow-lg transform hover:-translate-y-0.5">Save Records</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <div className="space-y-6">
