@@ -2,25 +2,10 @@ const express = require('express');
 const User = require('../models/User');
 const FarmImage = require('../models/FarmImage');
 const multer = require('multer');
-const path = require('path');
-const fs = require('fs');
 
 const router = express.Router();
 
-// Configure multer for file uploads
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    const uploadDir = path.join(__dirname, '../uploads/farm-images');
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true });
-    }
-    cb(null, uploadDir);
-  },
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, 'farm-' + uniqueSuffix + path.extname(file.originalname));
-  }
-});
+const storage = multer.memoryStorage();
 
 const upload = multer({
   storage: storage,
@@ -123,11 +108,13 @@ router.post('/farm-images', requireAdmin, upload.single('image'), async (req, re
       return res.status(400).json({ message: 'No image file provided' });
     }
 
-    const imageUrl = `/uploads/farm-images/${req.file.filename}`;
+    // Convert buffer to Base64 string to store directly in MongoDB
+    const b64 = Buffer.from(req.file.buffer).toString('base64');
+    const imageUrl = `data:${req.file.mimetype};base64,${b64}`;
 
     const image = new FarmImage({
       url: imageUrl,
-      filename: req.file.filename,
+      filename: req.file.originalname,
       title: req.body.title || '',
       description: req.body.description || '',
       order: parseInt(req.body.order) || 0
@@ -167,12 +154,6 @@ router.delete('/farm-images/:id', requireAdmin, async (req, res) => {
     const image = await FarmImage.findById(req.params.id);
     if (!image) {
       return res.status(404).json({ message: 'Image not found' });
-    }
-
-    // Delete file from filesystem
-    const filePath = path.join(__dirname, '../uploads/farm-images', image.filename);
-    if (fs.existsSync(filePath)) {
-      fs.unlinkSync(filePath);
     }
 
     await FarmImage.findByIdAndDelete(req.params.id);
