@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import Swal from 'sweetalert2';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { FaPlus, FaEye, FaEdit, FaTrash, FaRupeeSign, FaChartLine, FaUser, FaTimesCircle, FaWallet, FaCheck, FaCalendarCheck, FaStar, FaSyringe, FaBaby, FaPills } from 'react-icons/fa';
+import { FaPlus, FaEye, FaEdit, FaTrash, FaRupeeSign, FaChartLine, FaUser, FaTimesCircle, FaWallet, FaCheck, FaCalendarCheck, FaStar, FaSyringe, FaBaby, FaPills, FaDownload, FaPrint } from 'react-icons/fa';
 import { GiMilkCarton } from 'react-icons/gi';
 
 import InseminationForm from './InseminationForm';
@@ -39,7 +39,8 @@ const AdminDashboard = () => {
     date_of_birth: '',
     date_of_entry: '',
     source: '',
-    health_summary: ''
+    health_summary: '',
+    image: ''
   });
 
   useEffect(() => {
@@ -156,6 +157,27 @@ const AdminDashboard = () => {
           }
         }
       }
+
+      // Check for upcoming vaccination dates
+      if (cow.vaccination_records && cow.vaccination_records.length > 0) {
+        const lastVaccine = cow.vaccination_records[cow.vaccination_records.length - 1];
+        if (lastVaccine.next_due_date) {
+          const nextVaccineDate = new Date(lastVaccine.next_due_date);
+          const daysUntilVaccine = Math.ceil((nextVaccineDate - today) / (1000 * 60 * 60 * 24));
+
+          if (daysUntilVaccine >= -15 && daysUntilVaccine <= 15) {
+            reminders.push({
+              type: 'vaccination',
+              cow: cow.name,
+              date: nextVaccineDate,
+              days: daysUntilVaccine,
+              message: daysUntilVaccine < 0
+                ? `${cow.name} का टीकाकरण ${Math.abs(daysUntilVaccine)} दिन ओवरड्यू है`
+                : `${cow.name} का टीकाकरण ${daysUntilVaccine} दिन में बाकी है`
+            });
+          }
+        }
+      }
     });
 
     return reminders.sort((a, b) => a.days - b.days);
@@ -170,7 +192,8 @@ const AdminDashboard = () => {
       date_of_birth: cow.date_of_birth ? new Date(cow.date_of_birth).toISOString().split('T')[0] : '',
       date_of_entry: cow.date_of_entry ? new Date(cow.date_of_entry).toISOString().split('T')[0] : '',
       source: cow.source || '',
-      health_summary: cow.health_summary || ''
+      health_summary: cow.health_summary || '',
+      image: cow.image || ''
     });
     setShowCowForm(true);
   };
@@ -183,7 +206,8 @@ const AdminDashboard = () => {
       date_of_birth: '',
       date_of_entry: '',
       source: '',
-      health_summary: ''
+      health_summary: '',
+      image: ''
     });
   };
 
@@ -248,6 +272,7 @@ const AdminDashboard = () => {
         date_of_entry: entryDate,
         source: cowForm.source || '',
         health_summary: cowForm.health_summary || '',
+        image: cowForm.image || '',
         status: editingCow ? undefined : 'active'
       };
 
@@ -458,9 +483,10 @@ const AdminDashboard = () => {
                 <div key={index} className={`flex items-center justify-between bg-white p-3 rounded border ${reminder.days < 0 ? 'border-red-300' : 'border-yellow-300'}`}>
                   <div className="flex items-center gap-3">
                     <span className={`px-2 py-1 rounded text-xs font-semibold ${
-                      reminder.type === 'calving' ? 'bg-pink-100 text-pink-800' : 'bg-green-100 text-green-800'
+                      reminder.type === 'calving' ? 'bg-pink-100 text-pink-800' : 
+                      reminder.type === 'vaccination' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'
                     }`}>
-                      {reminder.type === 'calving' ? 'बच्चा' : 'डीवॉर्मिंग'}
+                      {reminder.type === 'calving' ? 'बच्चा' : reminder.type === 'vaccination' ? 'टीकाकरण' : 'डीवॉर्मिंग'}
                     </span>
                     <span className={`text-sm ${reminder.days < 0 ? 'text-red-700 font-medium' : 'text-gray-800'}`}>{reminder.message}</span>
                   </div>
@@ -590,6 +616,30 @@ const AdminDashboard = () => {
               />
             </div>
 
+            <div>
+              <label className="block text-white mb-2 text-sm font-medium">फोटो (Image)</label>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(e) => {
+                  const file = e.target.files[0];
+                  if (file) {
+                    const reader = new FileReader();
+                    reader.onloadend = () => {
+                      setCowForm({...cowForm, image: reader.result});
+                    };
+                    reader.readAsDataURL(file);
+                  }
+                }}
+                className="w-full p-3 bg-primary-800 border border-secondary-600 rounded-lg text-white text-sm focus:outline-none focus:border-accent-blue focus:ring-2 focus:ring-accent-blue/20 transition-all duration-200"
+              />
+              {cowForm.image && (
+                <div className="mt-3">
+                  <img src={cowForm.image} alt="Preview" className="w-24 h-24 object-cover rounded-lg border border-secondary-500" />
+                </div>
+              )}
+            </div>
+
             <div className="flex flex-col sm:flex-row gap-4 sm:justify-end pt-6 border-t border-secondary-700">
               <button type="button" onClick={() => {
                 setShowCowForm(false);
@@ -696,7 +746,36 @@ const AdminDashboard = () => {
     reason: '',
     new_market_price: ''
   });
+  const [vaccinationData, setVaccinationData] = useState({
+    cow_id: '',
+    date: new Date().toISOString().split('T')[0],
+    vaccine_name: '',
+    next_due_date: '',
+    cost: '',
+    notes: ''
+  });
+  const [showVaccinationForm, setShowVaccinationForm] = useState(false);
   const [showDryCowForm, setShowDryCowForm] = useState(false);
+  const [selectedBulkCows, setSelectedBulkCows] = useState([]);
+  const [showBulkVaccinationForm, setShowBulkVaccinationForm] = useState(false);
+  const [bulkVaccinationData, setBulkVaccinationData] = useState({
+    date: new Date().toISOString().split('T')[0],
+    vaccine_name: '',
+    next_due_date: '',
+    cost_per_cow: '',
+    notes: ''
+  });
+  const [showBulkDewormingForm, setShowBulkDewormingForm] = useState(false);
+  const [bulkDewormingData, setBulkDewormingData] = useState({
+    date: new Date().toISOString().split('T')[0],
+    medicine_name: '',
+    dosage: '',
+    next_due_date: '',
+    cost_per_cow: '',
+    notes: ''
+  });
+  const [filterType, setFilterType] = useState('all');
+  const [filterStatus, setFilterStatus] = useState('all');
   const [paymentSettings, setPaymentSettings] = useState({
     account_number: '',
     account_holder_name: '',
@@ -709,24 +788,61 @@ const AdminDashboard = () => {
   const [pendingPayments, setPendingPayments] = useState([]);
   const [reviews, setReviews] = useState([]);
 
+  const renderCows = () => {
+    const filteredCows = cows.filter(cow => {
+      const matchType = filterType === 'all' || cow.type === filterType;
+      const matchStatus = filterStatus === 'all' || cow.status === filterStatus;
+      return matchType && matchStatus;
+    });
 
-
-  const renderCows = () => (
-    <div className="bg-primary-700 rounded-lg p-6 mb-5 border border-secondary-700">
+    return (
+      <div className="bg-primary-700 rounded-lg p-6 mb-5 border border-secondary-700">
       <div className="flex items-center justify-between mb-5">
         <h3 className="bg-gradient-to-r from-accent-blue to-accent-green bg-clip-text text-transparent mb-0 flex items-center gap-3">
           <FaUser className="text-accent-blue text-xl" />
           Cattle Management
         </h3>
-        <button onClick={() => setShowCowForm(true)} className="bg-accent-blue text-white border-none px-4 py-2 rounded cursor-pointer flex items-center gap-2 text-sm hover:bg-accent-blue-dark">
-          <FaPlus /> Add Cattle
-        </button>
+        <div className="flex items-center gap-3">
+          <button onClick={exportCattleListToCSV} className="bg-green-600 text-white border-none px-4 py-2 rounded cursor-pointer flex items-center gap-2 text-sm hover:bg-green-700 shadow-md">
+            <FaDownload /> एक्सपोर्ट (CSV)
+          </button>
+          <button onClick={handlePrintCattleList} className="bg-blue-600 text-white border-none px-4 py-2 rounded cursor-pointer flex items-center gap-2 text-sm hover:bg-blue-700 shadow-md">
+            <FaPrint /> प्रिंट (Print)
+          </button>
+          {selectedBulkCows.length > 0 && (
+            <>
+              <button onClick={() => setShowBulkDewormingForm(true)} className="bg-yellow-600 text-white border-none px-4 py-2 rounded cursor-pointer flex items-center gap-2 text-sm hover:bg-yellow-700 shadow-md">
+                <FaPills /> सामूहिक डीवॉर्मिंग ({selectedBulkCows.length})
+              </button>
+              <button onClick={() => setShowBulkVaccinationForm(true)} className="bg-pink-600 text-white border-none px-4 py-2 rounded cursor-pointer flex items-center gap-2 text-sm hover:bg-pink-700 shadow-md">
+                <FaSyringe /> सामूहिक टीकाकरण ({selectedBulkCows.length})
+              </button>
+            </>
+          )}
+          <button onClick={() => setShowCowForm(true)} className="bg-accent-blue text-white border-none px-4 py-2 rounded cursor-pointer flex items-center gap-2 text-sm hover:bg-accent-blue-dark shadow-md">
+            <FaPlus /> Add Cattle
+          </button>
+        </div>
       </div>
 
       <div className="overflow-x-auto">
         <table className="w-full bg-primary-800 border border-secondary-700 rounded-lg">
           <thead className="bg-primary-900">
             <tr>
+              <th className="px-4 py-3 text-left text-white font-semibold border-b border-secondary-600 w-10">
+                <input
+                  type="checkbox"
+                  checked={filteredCows.length > 0 && selectedBulkCows.length === filteredCows.length}
+                  onChange={(e) => {
+                    if (e.target.checked) {
+                      setSelectedBulkCows(filteredCows.map(c => c._id));
+                    } else {
+                      setSelectedBulkCows([]);
+                    }
+                  }}
+                  className="w-4 h-4 cursor-pointer accent-pink-600"
+                />
+              </th>
               <th className="px-4 py-3 text-left text-white font-semibold border-b border-secondary-600">ID / नाम</th>
               <th className="px-4 py-3 text-left text-white font-semibold border-b border-secondary-600">स्थिति</th>
               <th className="px-4 py-3 text-left text-white font-semibold border-b border-secondary-600">प्रेग्नेंसी जानकारी</th>
@@ -736,11 +852,36 @@ const AdminDashboard = () => {
             </tr>
           </thead>
           <tbody>
-            {cows.map(cow => (
+            {filteredCows.map(cow => (
               <tr key={cow._id} className="border-b border-secondary-700 hover:bg-primary-750">
+                <td className="px-4 py-3 border-b border-secondary-700">
+                  <input
+                    type="checkbox"
+                    checked={selectedBulkCows.includes(cow._id)}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        setSelectedBulkCows([...selectedBulkCows, cow._id]);
+                      } else {
+                        setSelectedBulkCows(selectedBulkCows.filter(id => id !== cow._id));
+                      }
+                    }}
+                    className="w-4 h-4 cursor-pointer accent-pink-600"
+                  />
+                </td>
                 <td className="px-4 py-3 text-white font-medium">
-                  <div>{cow.listing_id}</div>
-                  <div className="text-secondary-300 text-sm">{cow.name} ({cow.type === 'cow' ? 'गाय' : 'भैंस'})</div>
+                  <div className="flex items-center gap-3">
+                    {cow.image ? (
+                      <img src={cow.image} alt={cow.name} className="w-10 h-10 rounded-full object-cover border border-secondary-600 flex-shrink-0" />
+                    ) : (
+                      <div className="w-10 h-10 rounded-full bg-secondary-600 flex items-center justify-center flex-shrink-0">
+                        <FaUser className="text-secondary-300" />
+                      </div>
+                    )}
+                    <div>
+                      <div>{cow.listing_id}</div>
+                      <div className="text-secondary-300 text-sm">{cow.name} ({cow.type === 'cow' ? 'गाय' : 'भैंस'})</div>
+                    </div>
+                  </div>
                 </td>
                 <td className="px-4 py-3">
                   <span className={`px-2 py-1 rounded text-xs font-semibold ${
@@ -755,7 +896,7 @@ const AdminDashboard = () => {
                   {cow.insemination_records?.length > 0 ? (
                     <>
                       <div>सेमेन: {new Date(cow.insemination_records[cow.insemination_records.length - 1].insemination_date).toLocaleDateString('hi-IN')}</div>
-                      {cow.status === 'pregnant' && (
+                      {(cow.status === 'pregnant' || cow.pregnancy_status) && (
                         <div className="text-accent-blue font-semibold mt-1">
                           संभावित बच्चा: {(() => {
                             const lastInsem = new Date(cow.insemination_records[cow.insemination_records.length - 1].insemination_date);
@@ -766,7 +907,7 @@ const AdminDashboard = () => {
                         </div>
                       )}
                     </>
-                  ) : cow.expected_calving_date && cow.status === 'pregnant' ? (
+                  ) : cow.expected_calving_date && (cow.status === 'pregnant' || cow.pregnancy_status) ? (
                     <div className="text-accent-blue font-semibold mt-1">
                       संभावित बच्चा: {new Date(cow.expected_calving_date).toLocaleDateString('hi-IN')}
                     </div>
@@ -848,15 +989,16 @@ const AdminDashboard = () => {
         </table>
       </div>
 
-      {cows.length === 0 && (
+      {filteredCows.length === 0 && (
         <div className="text-center py-12 bg-primary-800 border-2 border-dashed border-secondary-600 rounded-lg mt-6">
           <FaUser className="text-accent-blue text-6xl mx-auto mb-4" />
-          <h4 className="text-white text-xl mb-2">No cattle yet</h4>
-          <p className="text-secondary-400">Start by adding your first cattle to the herd.</p>
+          <h4 className="text-white text-xl mb-2">कोई पशु नहीं मिला</h4>
+          <p className="text-secondary-400">आपके फ़िल्टर से मेल खाने वाला कोई डेटा मौजूद नहीं है।</p>
         </div>
       )}
     </div>
   );
+  };
 
   const viewCowDetails = (cow) => {
     const inseminationHistory = cow.insemination_records?.length > 0
@@ -898,27 +1040,73 @@ const AdminDashboard = () => {
         `).join('')
       : '<p>कोई डीवॉर्मिंग रिकॉर्ड नहीं</p>';
       
-    const expectedCalving = cow.insemination_records?.length > 0 && cow.status === 'pregnant' ? (() => {
+    const vaccinationHistory = cow.vaccination_records?.length > 0
+      ? cow.vaccination_records.map(record => `
+          <div style="border-left: 3px solid #ec4899; padding-left: 10px; margin: 10px 0;">
+            <p><strong>तारीख:</strong> ${new Date(record.date).toLocaleDateString('hi-IN')}</p>
+            <p><strong>टीका:</strong> ${record.vaccine_name}</p>
+            <p><strong>लागत:</strong> ₹${record.cost || 0}</p>
+            <p><strong>अगली तारीख:</strong> ${record.next_due_date ? new Date(record.next_due_date).toLocaleDateString('hi-IN') : 'N/A'}</p>
+            <p><strong>नोट्स:</strong> ${record.notes || 'N/A'}</p>
+          </div>
+        `).join('')
+      : '<p>कोई टीकाकरण रिकॉर्ड नहीं</p>';
+
+    const milkHistory = cow.milk_records?.length > 0
+      ? cow.milk_records.slice(-5).reverse().map(record => `
+          <div style="border-left: 3px solid #06b6d4; padding-left: 10px; margin: 10px 0;">
+            <p><strong>तारीख:</strong> ${new Date(record.date).toLocaleDateString('hi-IN')}</p>
+            <p><strong>सुबह:</strong> ${record.morning_milk || 0} L | <strong>शाम:</strong> ${record.evening_milk || 0} L</p>
+            <p><strong>कुल:</strong> ${record.total_milk || 0} L</p>
+          </div>
+        `).join('')
+      : '<p>कोई दूध रिकॉर्ड नहीं</p>';
+      
+    const expectedCalving = cow.insemination_records?.length > 0 && (cow.status === 'pregnant' || cow.pregnancy_status) ? (() => {
       const lastInsem = new Date(cow.insemination_records[cow.insemination_records.length - 1].insemination_date);
       lastInsem.setMonth(lastInsem.getMonth() + (cow.type === 'buffalo' ? 10 : 9));
       return lastInsem;
     })() : cow.expected_calving_date ? new Date(cow.expected_calving_date) : null;
 
+    const recentMilk = cow.milk_records?.slice(-10) || [];
+    const maxMilk = recentMilk.length > 0 ? Math.max(...recentMilk.map(r => r.total_milk || 0), 10) : 10;
+    const milkChart = recentMilk.length > 0 ? `
+      <div style="margin: 15px 0 25px 0; padding: 15px; background: rgba(0,0,0,0.2); border-radius: 8px;">
+        <p style="font-size: 13px; color: #9ca3af; margin-top: 0; margin-bottom: 15px; text-align: center; font-weight: 600;">पिछले 10 दिनों का उत्पादन ग्राफ (Bar Chart)</p>
+        <div style="display: flex; align-items: flex-end; height: 120px; gap: 8px; padding-bottom: 25px; border-bottom: 1px solid #4b5563; position: relative;">
+          ${recentMilk.map(r => {
+            const heightPct = ((r.total_milk || 0) / maxMilk) * 100;
+            const dateStr = new Date(r.date).toLocaleDateString('hi-IN', {day:'numeric', month:'short'});
+            return `
+              <div style="display: flex; flex-direction: column; align-items: center; flex: 1; height: 100%; justify-content: flex-end; position: relative;">
+                <span style="font-size: 11px; color: #06b6d4; margin-bottom: 4px; font-weight: bold;">${r.total_milk || 0}</span>
+                <div style="width: 100%; max-width: 25px; height: ${heightPct}%; background: linear-gradient(to top, #06b6d4, #3b82f6); border-radius: 4px 4px 0 0; min-height: 4px; box-shadow: 0 -2px 5px rgba(59,130,246,0.3);"></div>
+                <span style="font-size: 10px; color: #9ca3af; position: absolute; bottom: -20px; white-space: nowrap;">${dateStr}</span>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      </div>
+    ` : '';
+
     Swal.fire({
       title: `${cow.name} (${cow.listing_id}) - पूरा इतिहास`,
       html: `
         <div style="text-align: left; max-height: 400px; overflow-y: auto;">
-           <div style="margin-bottom: 20px;">
-             <h4 style="color: #3b82f6; border-bottom: 2px solid #3b82f6; padding-bottom: 5px;">मौलिक जानकारी</h4>
-             <p><strong>प्रकार:</strong> ${cow.type === 'cow' ? 'गाय' : 'भैंस'}</p>
-             <p><strong>स्थिति:</strong> ${cow.status}</p>
-             <p><strong>आयु:</strong> ${cow.age ? `${cow.age} साल` : 'अज्ञात'}</p>
-             <p><strong>जन्म तारीख:</strong> ${cow.date_of_birth ? new Date(cow.date_of_birth).toLocaleDateString('hi-IN') : 'अज्ञात'}</p>
-             <p><strong>प्रवेश तारीख:</strong> ${cow.date_of_entry ? new Date(cow.date_of_entry).toLocaleDateString('hi-IN') : 'अज्ञात'}</p>
-             <p><strong>स्रोत:</strong> ${cow.source || 'अज्ञात'}</p>
-             <p><strong>कुल बच्चे:</strong> ${cow.total_calvings || 0}</p>
-             <p><strong>वर्तमान दूध उत्पादन:</strong> ${cow.current_daily_milk || 0} लीटर/दिन</p>
-             <p><strong>कुल दूध उत्पादन:</strong> ${cow.total_milk_produced || 0} लीटर</p>
+           <div style="margin-bottom: 20px; display: flex; gap: 15px; align-items: flex-start; flex-wrap: wrap;">
+             ${cow.image ? `<img src="${cow.image}" alt="${cow.name}" style="width: 120px; height: 120px; object-fit: cover; border-radius: 8px; border: 2px solid #3b82f6; flex-shrink: 0;" />` : `<div style="width: 120px; height: 120px; background: #374151; border-radius: 8px; display: flex; align-items: center; justify-content: center; border: 2px solid #3b82f6; flex-shrink: 0;"><span style="color: #9ca3af;">No Image</span></div>`}
+             <div style="flex: 1;">
+               <h4 style="color: #3b82f6; border-bottom: 2px solid #3b82f6; padding-bottom: 5px; margin-top: 0;">मौलिक जानकारी</h4>
+               <p style="margin: 5px 0;"><strong>प्रकार:</strong> ${cow.type === 'cow' ? 'गाय' : 'भैंस'}</p>
+               <p style="margin: 5px 0;"><strong>स्थिति:</strong> ${cow.status}</p>
+               <p style="margin: 5px 0;"><strong>आयु:</strong> ${cow.age ? `${cow.age} साल` : 'अज्ञात'}</p>
+               <p style="margin: 5px 0;"><strong>जन्म तारीख:</strong> ${cow.date_of_birth ? new Date(cow.date_of_birth).toLocaleDateString('hi-IN') : 'अज्ञात'}</p>
+               <p style="margin: 5px 0;"><strong>प्रवेश तारीख:</strong> ${cow.date_of_entry ? new Date(cow.date_of_entry).toLocaleDateString('hi-IN') : 'अज्ञात'}</p>
+               <p style="margin: 5px 0;"><strong>स्रोत:</strong> ${cow.source || 'अज्ञात'}</p>
+               <p style="margin: 5px 0;"><strong>कुल बच्चे:</strong> ${cow.total_calvings || 0}</p>
+               <p style="margin: 5px 0;"><strong>वर्तमान दूध उत्पादन:</strong> ${cow.current_daily_milk || 0} लीटर/दिन</p>
+               <p style="margin: 5px 0;"><strong>कुल दूध उत्पादन:</strong> ${cow.total_milk_produced || 0} लीटर</p>
+             </div>
            </div>
 
            <div style="margin-bottom: 20px;">
@@ -934,6 +1122,17 @@ const AdminDashboard = () => {
            <div style="margin-bottom: 20px;">
              <h4 style="color: #f59e0b; border-bottom: 2px solid #f59e0b; padding-bottom: 5px;">डीवॉर्मिंग इतिहास (${cow.deworming_records?.length || 0} बार)</h4>
              ${dewormingHistory}
+           </div>
+
+           <div style="margin-bottom: 20px;">
+             <h4 style="color: #ec4899; border-bottom: 2px solid #ec4899; padding-bottom: 5px;">टीकाकरण इतिहास (${cow.vaccination_records?.length || 0} बार)</h4>
+             ${vaccinationHistory}
+           </div>
+
+           <div style="margin-bottom: 20px;">
+             <h4 style="color: #06b6d4; border-bottom: 2px solid #06b6d4; padding-bottom: 5px;">दूध उत्पादन का इतिहास</h4>
+             ${milkChart}
+             ${milkHistory}
            </div>
 
            <div style="margin-bottom: 20px;">
@@ -1052,6 +1251,288 @@ const AdminDashboard = () => {
     }
   };
 
+  const handleMilkSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      const token = localStorage.getItem('token');
+      const config = { headers: { Authorization: `Bearer ${token}` } };
+      
+      const morning = parseFloat(milkData.morning_milk) || 0;
+      const evening = parseFloat(milkData.evening_milk) || 0;
+      const total = morning + evening;
+
+      const selectedCow = cows.find(c => c._id === milkData.cow_id);
+      const newTotalProduced = (selectedCow.total_milk_produced || 0) + total;
+
+      await axios.put(`/api/cows/${milkData.cow_id}`, {
+        $push: {
+          milk_records: {
+            date: new Date(milkData.date),
+            morning_milk: morning,
+            evening_milk: evening,
+            total_milk: total
+          }
+        },
+        current_daily_milk: total,
+        total_milk_produced: newTotalProduced
+      }, config);
+
+      Swal.fire('Success', 'दूध उत्पादन रिकॉर्ड सफलतापूर्वक जोड़ा गया!', 'success');
+      setShowMilkForm(false);
+      setMilkData({
+        cow_id: '',
+        date: new Date().toISOString().split('T')[0],
+        morning_milk: '',
+        evening_milk: ''
+      });
+      fetchDashboardData();
+    } catch (err) {
+      Swal.fire('Error', 'दूध उत्पादन रिकॉर्ड जोड़ने में त्रुटि', 'error');
+    }
+  };
+
+  const handleVaccinationSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      const token = localStorage.getItem('token');
+      const config = { headers: { Authorization: `Bearer ${token}` } };
+
+      await axios.put(`/api/cows/${vaccinationData.cow_id}`, {
+        $push: {
+          vaccination_records: {
+            date: new Date(vaccinationData.date),
+            vaccine_name: vaccinationData.vaccine_name,
+            next_due_date: vaccinationData.next_due_date ? new Date(vaccinationData.next_due_date) : null,
+            cost: parseFloat(vaccinationData.cost) || 0,
+            notes: vaccinationData.notes
+          }
+        }
+      }, config);
+
+      if (vaccinationData.cost && parseFloat(vaccinationData.cost) > 0) {
+        await axios.post('/api/expenses', {
+          date: vaccinationData.date,
+          category: 'vet',
+          amount: parseFloat(vaccinationData.cost),
+          description: `Vaccination: ${vaccinationData.vaccine_name}`,
+          cow_id: vaccinationData.cow_id
+        }, config);
+      }
+
+      Swal.fire('Success', 'टीकाकरण रिकॉर्ड सफलतापूर्वक जोड़ा गया!', 'success');
+      setShowVaccinationForm(false);
+      setVaccinationData({ cow_id: '', date: new Date().toISOString().split('T')[0], vaccine_name: '', next_due_date: '', cost: '', notes: '' });
+      fetchDashboardData();
+    } catch (err) {
+      Swal.fire('Error', 'टीकाकरण रिकॉर्ड जोड़ने में त्रुटि', 'error');
+    }
+  };
+
+  const handleBulkVaccinationSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      const token = localStorage.getItem('token');
+      const config = { headers: { Authorization: `Bearer ${token}` } };
+
+      Swal.fire({
+        title: 'अपडेट किया जा रहा है...',
+        text: 'कृपया प्रतीक्षा करें',
+        allowOutsideClick: false,
+        didOpen: () => Swal.showLoading()
+      });
+
+      const costPerCow = parseFloat(bulkVaccinationData.cost_per_cow) || 0;
+
+      const promises = selectedBulkCows.map(async (cowId) => {
+        await axios.put(`/api/cows/${cowId}`, {
+          $push: {
+            vaccination_records: {
+              date: new Date(bulkVaccinationData.date),
+              vaccine_name: bulkVaccinationData.vaccine_name,
+              next_due_date: bulkVaccinationData.next_due_date ? new Date(bulkVaccinationData.next_due_date) : null,
+              cost: costPerCow,
+              notes: bulkVaccinationData.notes
+            }
+          }
+        }, config);
+
+        if (costPerCow > 0) {
+          await axios.post('/api/expenses', {
+            date: bulkVaccinationData.date,
+            category: 'vet',
+            amount: costPerCow,
+            description: `Bulk Vaccination: ${bulkVaccinationData.vaccine_name}`,
+            cow_id: cowId
+          }, config);
+        }
+      });
+
+      await Promise.all(promises);
+
+      Swal.fire('सफलता', `${selectedBulkCows.length} पशुओं का टीकाकरण रिकॉर्ड सफलतापूर्वक जोड़ा गया!`, 'success');
+      setShowBulkVaccinationForm(false);
+      setSelectedBulkCows([]);
+      setBulkVaccinationData({ date: new Date().toISOString().split('T')[0], vaccine_name: '', next_due_date: '', cost_per_cow: '', notes: '' });
+      fetchDashboardData();
+    } catch (err) {
+      Swal.fire('त्रुटि', 'सामूहिक टीकाकरण रिकॉर्ड जोड़ने में त्रुटि', 'error');
+    }
+  };
+
+  const exportCattleListToCSV = () => {
+    if (!cows || cows.length === 0) {
+      Swal.fire('त्रुटि', 'एक्सपोर्ट करने के लिए कोई डेटा नहीं है', 'error');
+      return;
+    }
+    const headers = ['ID', 'नाम (Name)', 'प्रकार (Type)', 'स्थिति (Status)', 'उम्र (Age)', 'कुल बच्चे (Calvings)', 'दूध (Milk L/Day)', 'स्वास्थ्य (Health)'];
+    const csvRows = [];
+    csvRows.push(headers.join(','));
+
+    cows.forEach(cow => {
+      const row = [
+        cow.listing_id || '',
+        cow.name || '',
+        cow.type === 'cow' ? 'गाय' : 'भैंस',
+        cow.status || '',
+        cow.date_of_birth ? new Date().getFullYear() - new Date(cow.date_of_birth).getFullYear() : 'Unknown',
+        cow.total_calvings || 0,
+        cow.current_daily_milk || 0,
+        (cow.health_summary || '').replace(/,/g, ' ') // Avoid CSV column breaking
+      ];
+      csvRows.push(row.join(','));
+    });
+
+    const csvString = csvRows.join('\n');
+    const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `cattle_list_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handlePrintCattleList = () => {
+    if (!cows || cows.length === 0) {
+      Swal.fire('त्रुटि', 'प्रिंट करने के लिए कोई डेटा नहीं है', 'error');
+      return;
+    }
+
+    const printWindow = window.open('', '_blank');
+    const date = new Date().toLocaleDateString('hi-IN');
+
+    const tableContent = cows.map((cow, index) => `
+      <tr>
+        <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">${index + 1}</td>
+        <td style="padding: 8px; border: 1px solid #ddd;">${cow.listing_id || '-'}</td>
+        <td style="padding: 8px; border: 1px solid #ddd;">${cow.name || '-'}</td>
+        <td style="padding: 8px; border: 1px solid #ddd;">${cow.type === 'cow' ? 'गाय' : 'भैंस'}</td>
+        <td style="padding: 8px; border: 1px solid #ddd;">${cow.status || '-'}</td>
+        <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">${cow.current_daily_milk || 0} L</td>
+        <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">${cow.total_calvings || 0}</td>
+      </tr>
+    `).join('');
+
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>पशुधन सूची - Hareram Dudhwale</title>
+          <style>
+            body { font-family: Arial, sans-serif; padding: 20px; }
+            h2 { text-align: center; color: #333; margin-bottom: 5px; }
+            .date { text-align: right; margin-bottom: 20px; font-weight: bold; font-size: 14px; color: #555; }
+            table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 14px; }
+            th, td { padding: 10px; border: 1px solid #ccc; text-align: left; }
+            th { background-color: #f3f4f6; font-weight: bold; }
+            @media print {
+              button { display: none; }
+            }
+          </style>
+        </head>
+        <body>
+          <h2>पशुधन सूची (Livestock List)</h2>
+          <div class="date">तारीख: ${date}</div>
+          <table>
+            <thead>
+              <tr>
+                <th style="text-align: center; width: 60px;">क्र.सं.</th>
+                <th>आईडी (ID)</th>
+                <th>नाम (Name)</th>
+                <th>प्रकार (Type)</th>
+                <th>स्थिति (Status)</th>
+                <th style="text-align: center;">दूध (L/Day)</th>
+                <th style="text-align: center;">कुल बच्चे</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${tableContent}
+            </tbody>
+          </table>
+          <div style="text-align: center; margin-top: 30px;">
+            <button onclick="window.print()" style="padding: 10px 20px; background-color: #3b82f6; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px;">Print Now</button>
+          </div>
+          <script>
+            window.onload = function() { setTimeout(function() { window.print(); }, 500); }
+          </script>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+  };
+
+  const handleBulkDewormingSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      const token = localStorage.getItem('token');
+      const config = { headers: { Authorization: `Bearer ${token}` } };
+
+      Swal.fire({
+        title: 'अपडेट किया जा रहा है...',
+        text: 'कृपया प्रतीक्षा करें',
+        allowOutsideClick: false,
+        didOpen: () => Swal.showLoading()
+      });
+
+      const costPerCow = parseFloat(bulkDewormingData.cost_per_cow) || 0;
+
+      const promises = selectedBulkCows.map(async (cowId) => {
+        await axios.put(`/api/cows/${cowId}`, {
+          $push: {
+            deworming_records: {
+              date: new Date(bulkDewormingData.date),
+              medicine_name: bulkDewormingData.medicine_name,
+              dosage: bulkDewormingData.dosage,
+              next_due_date: bulkDewormingData.next_due_date ? new Date(bulkDewormingData.next_due_date) : null,
+              cost: costPerCow,
+              notes: bulkDewormingData.notes
+            }
+          }
+        }, config);
+
+        if (costPerCow > 0) {
+          await axios.post('/api/expenses', {
+            date: bulkDewormingData.date,
+            category: 'vet',
+            amount: costPerCow,
+            description: `Bulk Deworming: ${bulkDewormingData.medicine_name}`,
+            cow_id: cowId
+          }, config);
+        }
+      });
+
+      await Promise.all(promises);
+
+      Swal.fire('सफलता', `${selectedBulkCows.length} पशुओं का डीवॉर्मिंग रिकॉर्ड सफलतापूर्वक जोड़ा गया!`, 'success');
+      setShowBulkDewormingForm(false);
+      setSelectedBulkCows([]);
+      setBulkDewormingData({ date: new Date().toISOString().split('T')[0], medicine_name: '', dosage: '', next_due_date: '', cost_per_cow: '', notes: '' });
+      fetchDashboardData();
+    } catch (err) {
+      Swal.fire('त्रुटि', 'सामूहिक डीवॉर्मिंग रिकॉर्ड जोड़ने में त्रुटि', 'error');
+    }
+  };
+
   const handleDryCowSubmit = async (e) => {
     e.preventDefault();
     try {
@@ -1141,6 +1622,70 @@ const AdminDashboard = () => {
     </div>
   );
 
+  const renderMilkForm = () => (
+    <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 p-4">
+      <div className="bg-primary-700 rounded-xl w-full max-w-2xl max-h-[90vh] overflow-hidden border border-secondary-700 shadow-2xl">
+        <div className="flex justify-between items-center p-6 border-b border-secondary-700">
+          <h3 className="text-white m-0 text-lg font-semibold">दैनिक दूध रिकॉर्ड (Daily Milk Record)</h3>
+          <button onClick={() => setShowMilkForm(false)} className="bg-secondary-600 hover:bg-secondary-500 text-white text-xl cursor-pointer p-2 w-10 h-10 flex items-center justify-center rounded-lg transition-colors duration-200">×</button>
+        </div>
+        <div className="overflow-y-auto max-h-[calc(90vh-120px)] p-6">
+          <form onSubmit={handleMilkSubmit} className="space-y-6">
+            <div className="p-5 bg-primary-800 rounded-lg border border-secondary-700">
+              <h4 className="text-white m-0 mb-4 text-base font-semibold">दूध उत्पादन का विवरण</h4>
+              <div className="mb-4">
+                <label className="block text-white mb-2 text-sm font-medium">तारीख *</label>
+                <input
+                  type="date"
+                  value={milkData.date}
+                  onChange={(e) => setMilkData({...milkData, date: e.target.value})}
+                  className="w-full p-3 bg-primary-800 border border-secondary-600 rounded-lg text-white text-sm focus:outline-none focus:border-accent-blue focus:ring-2 focus:ring-accent-blue/20 transition-all duration-200"
+                  required
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-white mb-2 text-sm font-medium">सुबह का दूध (लीटर)</label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    min="0"
+                    value={milkData.morning_milk}
+                    onChange={(e) => setMilkData({...milkData, morning_milk: e.target.value})}
+                    placeholder="Morning Milk"
+                    className="w-full p-3 bg-primary-800 border border-secondary-600 rounded-lg text-white text-sm focus:outline-none focus:border-accent-blue focus:ring-2 focus:ring-accent-blue/20 transition-all duration-200"
+                  />
+                </div>
+                <div>
+                  <label className="block text-white mb-2 text-sm font-medium">शाम का दूध (लीटर)</label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    min="0"
+                    value={milkData.evening_milk}
+                    onChange={(e) => setMilkData({...milkData, evening_milk: e.target.value})}
+                    placeholder="Evening Milk"
+                    className="w-full p-3 bg-primary-800 border border-secondary-600 rounded-lg text-white text-sm focus:outline-none focus:border-accent-blue focus:ring-2 focus:ring-accent-blue/20 transition-all duration-200"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-4 sm:justify-end pt-6 border-t border-secondary-700">
+              <button type="button" onClick={() => setShowMilkForm(false)} className="w-full sm:w-48 h-12 bg-secondary-600 hover:bg-secondary-500 text-white font-semibold rounded-xl border border-secondary-500 transition-all duration-300 shadow-md hover:shadow-lg transform hover:-translate-y-0.5">
+                Cancel
+              </button>
+              <button type="submit" className="w-full sm:w-48 h-12 bg-gradient-to-r from-accent-blue to-accent-blue-dark hover:from-accent-blue-dark hover:to-accent-blue text-white font-semibold rounded-xl border border-accent-blue transition-all duration-300 shadow-md hover:shadow-lg transform hover:-translate-y-0.5">
+                Save Record
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  );
+
   const renderPregnancyForm = () => (
     <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 p-4">
       <div className="bg-primary-700 rounded-xl w-full max-w-4xl max-h-[90vh] overflow-hidden border border-secondary-700 shadow-2xl">
@@ -1221,16 +1766,108 @@ const AdminDashboard = () => {
       {/* Action Buttons */}
       {selectedCowForRecords && (
         <div className="bg-primary-800 border border-secondary-700 rounded-lg p-6">
-          <h4 className="text-white text-lg font-semibold mb-6">कार्रवाई चुनें</h4>
+          <h4 className="text-white text-lg font-semibold mb-4">कार्रवाई चुनें (Select Action)</h4>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="space-y-8">
+            {/* Daily Management Section */}
+            <div>
+              <h5 className="text-blue-400 mb-3 border-b border-secondary-600 pb-2 flex items-center gap-2">
+                <GiMilkCarton /> दैनिक प्रबंधन (Daily Management)
+              </h5>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {/* Milk Record */}
+                <button
+                  onClick={() => {
+                    setMilkData({
+                      cow_id: selectedCowForRecords,
+                      date: new Date().toISOString().split('T')[0],
+                      morning_milk: '',
+                      evening_milk: ''
+                    });
+                    setShowMilkForm(true);
+                  }}
+                  className="bg-cyan-600 hover:bg-cyan-700 text-white border-none px-6 py-4 rounded-lg cursor-pointer flex items-center gap-3 text-sm transition-all duration-300 shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
+                >
+                  <GiMilkCarton className="text-xl" />
+                  <div className="text-left">
+                    <div className="font-semibold">दूध रिकॉर्ड</div>
+                    <div className="text-xs opacity-80">दैनिक दूध उत्पादन</div>
+                  </div>
+                </button>
+
+                {/* Sickness Record */}
+                <button
+                  onClick={() => {
+                    setSicknessData({
+                      date: new Date().toISOString().split('T')[0],
+                      condition: '', treatment: '', cost: '', notes: '',
+                      cow_id: selectedCowForRecords
+                    });
+                    setShowSicknessForm(true);
+                  }}
+                  className="bg-orange-600 hover:bg-orange-700 text-white border-none px-6 py-4 rounded-lg cursor-pointer flex items-center gap-3 text-sm transition-all duration-300 shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
+                >
+                  <FaUser className="text-xl" />
+                  <div className="text-left">
+                    <div className="font-semibold">बीमारी रिकॉर्ड</div>
+                    <div className="text-xs opacity-80">स्वास्थ्य समस्याएं</div>
+                  </div>
+                </button>
+              </div>
+            </div>
+
+            {/* Health & Care Section */}
+            <div>
+              <h5 className="text-green-400 mb-3 border-b border-secondary-600 pb-2 flex items-center gap-2">
+                <FaPills /> स्वास्थ्य सुरक्षा (Health & Care)
+              </h5>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {/* Deworming */}
+                <button
+                  onClick={() => {
+                    const cow = cows.find(c => c._id === selectedCowForRecords);
+                    setSelectedCow(cow);
+                    setShowDewormingForm(true);
+                  }}
+                  className="bg-yellow-600 hover:bg-yellow-700 text-white border-none px-6 py-4 rounded-lg cursor-pointer flex items-center gap-3 text-sm transition-all duration-300 shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
+                >
+                  <FaPills className="text-xl" />
+                  <div className="text-left">
+                    <div className="font-semibold">डीवॉर्मिंग</div>
+                    <div className="text-xs opacity-80">कीटाणुनाशक दवा</div>
+                  </div>
+                </button>
+
+                {/* Vaccination */}
+                <button
+                  onClick={() => {
+                    setVaccinationData({
+                      cow_id: selectedCowForRecords,
+                      date: new Date().toISOString().split('T')[0],
+                      vaccine_name: '', next_due_date: '', cost: '', notes: ''
+                    });
+                    setShowVaccinationForm(true);
+                  }}
+                  className="bg-pink-600 hover:bg-pink-700 text-white border-none px-6 py-4 rounded-lg cursor-pointer flex items-center gap-3 text-sm transition-all duration-300 shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
+                >
+                  <FaSyringe className="text-xl" />
+                  <div className="text-left">
+                    <div className="font-semibold">टीकाकरण (Vaccination)</div>
+                    <div className="text-xs opacity-80">वैक्सीन और रोकथाम</div>
+                  </div>
+                </button>
+              </div>
+            </div>
+
+            {/* Breeding Management Section */}
+            <div>
+              <h5 className="text-purple-400 mb-3 border-b border-secondary-600 pb-2 flex items-center gap-2">
+                <FaBaby /> प्रजनन प्रबंधन (Breeding)
+              </h5>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {/* Insemination */}
           <button
             onClick={() => {
-              if (!selectedCowForRecords) {
-                Swal.fire('त्रुटि', 'कृपया पहले गाय/भैंस चुनें', 'error');
-                return;
-              }
               const cow = cows.find(c => c._id === selectedCowForRecords);
               handleOpenInsemination(cow);
             }}
@@ -1246,11 +1883,6 @@ const AdminDashboard = () => {
           {/* Pregnancy Confirm */}
           <button
             onClick={async () => {
-              if (!selectedCowForRecords) {
-                Swal.fire('त्रुटि', 'कृपया पहले गाय/भैंस चुनें', 'error');
-                return;
-              }
-
               const selectedCow = cows.find(c => c._id === selectedCowForRecords);
               const lastInsemination = selectedCow?.insemination_records?.length > 0
                 ? selectedCow.insemination_records[selectedCow.insemination_records.length - 1]
@@ -1301,10 +1933,6 @@ const AdminDashboard = () => {
           {/* Calving */}
           <button
             onClick={() => {
-              if (!selectedCowForRecords) {
-                Swal.fire('त्रुटि', 'कृपया पहले गाय/भैंस चुनें', 'error');
-                return;
-              }
               const cow = cows.find(c => c._id === selectedCowForRecords);
               setSelectedCow(cow);
               setShowCalvingForm(true);
@@ -1318,63 +1946,9 @@ const AdminDashboard = () => {
             </div>
           </button>
 
-          {/* Deworming */}
-          <button
-            onClick={() => {
-              if (!selectedCowForRecords) {
-                Swal.fire('त्रुटि', 'कृपया पहले गाय/भैंस चुनें', 'error');
-                return;
-              }
-              const cow = cows.find(c => c._id === selectedCowForRecords);
-              setSelectedCow(cow);
-              setShowDewormingForm(true);
-            }}
-            className="bg-yellow-600 hover:bg-yellow-700 text-white border-none px-6 py-4 rounded-lg cursor-pointer flex items-center gap-3 text-sm transition-all duration-300 shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
-          >
-            <FaPills className="text-xl" />
-            <div className="text-left">
-              <div className="font-semibold">डीवॉर्मिंग</div>
-              <div className="text-xs opacity-80">कीटाणुनाशक दवा</div>
-            </div>
-          </button>
-
-
-
-
-
-          {/* Sickness Record */}
-          <button
-            onClick={() => {
-              if (!selectedCowForRecords) {
-                Swal.fire('त्रुटि', 'कृपया पहले गाय/भैंस चुनें', 'error');
-                return;
-              }
-              setSicknessData({
-                date: new Date().toISOString().split('T')[0],
-                condition: '',
-                treatment: '',
-                cost: '',
-                notes: '',
-                cow_id: selectedCowForRecords
-              });
-              setShowSicknessForm(true);
-            }}
-            className="bg-orange-600 hover:bg-orange-700 text-white border-none px-6 py-4 rounded-lg cursor-pointer flex items-center gap-3 text-sm transition-all duration-300 shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
-          >
-            <FaUser className="text-xl" />
-            <div className="text-left">
-              <div className="font-semibold">बीमारी रिकॉर्ड</div>
-              <div className="text-xs opacity-80">स्वास्थ्य समस्याएं</div>
-            </div>
-          </button>
-
           {/* Pregnancy Record */}
           <button
             onClick={() => {
-              if (!selectedCowForRecords) {
-                Swal.fire('त्रुटि', 'कृपया पहले गाय/भैंस चुनें', 'error');
-                return;
-              }
               setPregnancyData({
                 cow_id: selectedCowForRecords,
                 expected_calving_date: '',
@@ -1394,10 +1968,6 @@ const AdminDashboard = () => {
           {/* Dry Cow */}
           <button
             onClick={() => {
-              if (!selectedCowForRecords) {
-                Swal.fire('त्रुटि', 'कृपया पहले गाय/भैंस चुनें', 'error');
-                return;
-              }
               const selectedCow = cows.find(c => c._id === selectedCowForRecords);
               setDryCowData({
                 cow_id: selectedCowForRecords,
@@ -1414,6 +1984,8 @@ const AdminDashboard = () => {
               <div className="text-xs opacity-80">दूध उत्पादन बंद</div>
             </div>
           </button>
+        </div>
+        </div>
         </div>
       </div>
       )}
@@ -2113,6 +2685,45 @@ const AdminDashboard = () => {
               showCowName: false
             };
 
+          case 'monthly-milk':
+            const currentMonth = new Date().getMonth();
+            const currentYear = new Date().getFullYear();
+            
+            const monthlyMilkData = cows.filter(cow => cow.milk_records?.length > 0).map(cow => {
+              const currentMonthRecords = cow.milk_records.filter(record => {
+                const recordDate = new Date(record.date);
+                return recordDate.getMonth() === currentMonth && recordDate.getFullYear() === currentYear;
+              });
+
+              const totalMonthlyMilk = currentMonthRecords.reduce((sum, record) => sum + (record.total_milk || 0), 0);
+              
+              if (totalMonthlyMilk > 0) {
+                 return {
+                   listing_id: cow.listing_id,
+                   name: cow.name,
+                   type: cow.type === 'cow' ? 'गाय' : 'भैंस',
+                   total_monthly_milk: totalMonthlyMilk,
+                   record_days: currentMonthRecords.length,
+                   average_milk: (totalMonthlyMilk / currentMonthRecords.length).toFixed(1)
+                 };
+              }
+              return null;
+            }).filter(Boolean);
+
+            return {
+              title: `मासिक दूध उत्पादन रिपोर्ट (${new Date().toLocaleString('hi-IN', { month: 'long', year: 'numeric' })})`,
+              data: monthlyMilkData,
+              fields: [
+                { key: 'listing_id', label: 'आईडी' },
+                { key: 'name', label: 'नाम' },
+                { key: 'type', label: 'प्रकार' },
+                { key: 'total_monthly_milk', label: 'कुल मासिक दूध (लीटर)' },
+                { key: 'record_days', label: 'रिकॉर्ड के दिन' },
+                { key: 'average_milk', label: 'औसत (लीटर/दिन)' }
+              ],
+              showCowName: false
+            };
+
           case 'expense-summary':
             // Expense data would come from a separate API
             // But we can show expense records from cattle
@@ -2359,6 +2970,17 @@ const AdminDashboard = () => {
             </button>
 
             <button
+              onClick={() => showOverallReport('monthly-milk')}
+              className="bg-gradient-to-r from-teal-500 to-teal-600 hover:from-teal-600 hover:to-teal-700 text-white border-none px-6 py-4 rounded-lg cursor-pointer flex items-center gap-3 text-sm transition-all duration-300 shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
+            >
+              <GiMilkCarton className="text-xl" />
+              <div className="text-left">
+                <div className="font-semibold">मासिक दूध रिपोर्ट</div>
+                <div className="text-xs opacity-80">मासिक उत्पादन डेटा</div>
+              </div>
+            </button>
+
+            <button
               onClick={() => showOverallReport('cattle-list')}
               className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white border-none px-6 py-4 rounded-lg cursor-pointer flex items-center gap-3 text-sm transition-all duration-300 shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
             >
@@ -2417,6 +3039,62 @@ const AdminDashboard = () => {
       </div>
     );
   };
+
+  const renderBulkDewormingForm = () => (
+    <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 p-4">
+      <div className="bg-primary-700 rounded-xl w-full max-w-2xl max-h-[90vh] overflow-hidden border border-secondary-700 shadow-2xl">
+        <div className="flex justify-between items-center p-6 border-b border-secondary-700">
+          <h3 className="text-white m-0 text-lg font-semibold">सामूहिक डीवॉर्मिंग (Bulk Deworming)</h3>
+          <button onClick={() => setShowBulkDewormingForm(false)} className="bg-secondary-600 hover:bg-secondary-500 text-white text-xl cursor-pointer p-2 w-10 h-10 flex items-center justify-center rounded-lg transition-colors duration-200">×</button>
+        </div>
+        <div className="overflow-y-auto max-h-[calc(90vh-120px)] p-6">
+          <div className="mb-4 bg-yellow-900/30 border border-yellow-500/50 p-4 rounded-lg">
+            <p className="text-white m-0 text-sm">आप <strong>{selectedBulkCows.length}</strong> पशुओं की डीवॉर्मिंग कर रहे हैं।</p>
+          </div>
+          <form onSubmit={handleBulkDewormingSubmit} className="space-y-6">
+            <div className="p-5 bg-primary-800 rounded-lg border border-secondary-700">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div>
+                  <label className="block text-white mb-2 text-sm font-medium">तारीख (Date) *</label>
+                  <input type="date" value={bulkDewormingData.date} onChange={(e) => setBulkDewormingData({...bulkDewormingData, date: e.target.value})} className="w-full p-3 bg-primary-800 border border-secondary-600 rounded-lg text-white text-sm focus:outline-none focus:border-accent-blue" required />
+                </div>
+                <div>
+                  <label className="block text-white mb-2 text-sm font-medium">दवा का नाम (Medicine) *</label>
+                  <input type="text" value={bulkDewormingData.medicine_name} onChange={(e) => setBulkDewormingData({...bulkDewormingData, medicine_name: e.target.value})} placeholder="e.g., Albendazole" className="w-full p-3 bg-primary-800 border border-secondary-600 rounded-lg text-white text-sm focus:outline-none focus:border-accent-blue" required />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div>
+                  <label className="block text-white mb-2 text-sm font-medium">खुराक (Dosage)</label>
+                  <input type="text" value={bulkDewormingData.dosage} onChange={(e) => setBulkDewormingData({...bulkDewormingData, dosage: e.target.value})} placeholder="e.g., 90ml" className="w-full p-3 bg-primary-800 border border-secondary-600 rounded-lg text-white text-sm focus:outline-none focus:border-accent-blue" />
+                </div>
+                <div>
+                  <label className="block text-white mb-2 text-sm font-medium">लागत प्रति पशु (Cost/Cow ₹)</label>
+                  <input type="number" step="0.01" value={bulkDewormingData.cost_per_cow} onChange={(e) => setBulkDewormingData({...bulkDewormingData, cost_per_cow: e.target.value})} placeholder="0.00" className="w-full p-3 bg-primary-800 border border-secondary-600 rounded-lg text-white text-sm focus:outline-none focus:border-accent-blue" />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-white mb-2 text-sm font-medium">अगली तारीख (Next Due Date)</label>
+                <input type="date" value={bulkDewormingData.next_due_date} onChange={(e) => setBulkDewormingData({...bulkDewormingData, next_due_date: e.target.value})} className="w-full p-3 bg-primary-800 border border-secondary-600 rounded-lg text-white text-sm focus:outline-none focus:border-accent-blue mb-4" />
+              </div>
+
+              <div>
+                <label className="block text-white mb-2 text-sm font-medium">अतिरिक्त जानकारी (Notes)</label>
+                <textarea value={bulkDewormingData.notes} onChange={(e) => setBulkDewormingData({...bulkDewormingData, notes: e.target.value})} rows="3" placeholder="Any additional details" className="w-full p-3 bg-primary-800 border border-secondary-600 rounded-lg text-white text-sm focus:outline-none focus:border-accent-blue resize-vertical" />
+              </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-4 sm:justify-end pt-6 border-t border-secondary-700">
+              <button type="button" onClick={() => setShowBulkDewormingForm(false)} className="w-full sm:w-48 h-12 bg-secondary-600 hover:bg-secondary-500 text-white font-semibold rounded-xl border border-secondary-500 transition-all duration-300 shadow-md hover:shadow-lg transform hover:-translate-y-0.5">Cancel</button>
+              <button type="submit" className="w-full sm:w-48 h-12 bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-white font-semibold rounded-xl border border-yellow-500 transition-all duration-300 shadow-md hover:shadow-lg transform hover:-translate-y-0.5">Save Records</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  );
 
   const renderSicknessForm = () => (
     <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 p-4">
@@ -2532,6 +3210,10 @@ const AdminDashboard = () => {
       {showPregnancyForm && renderPregnancyForm()}
       {showDryCowForm && renderDryCowForm()}
       {showPaymentSettingsForm && renderPaymentSettingsForm()}
+      {showVaccinationForm && renderVaccinationForm()}
+      {showBulkVaccinationForm && renderBulkVaccinationForm()}
+      {showBulkDewormingForm && renderBulkDewormingForm()}
+      {showMilkForm && renderMilkForm()}
     </div>
   );
 };
