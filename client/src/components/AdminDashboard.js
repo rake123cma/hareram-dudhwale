@@ -794,6 +794,12 @@ const AdminDashboard = () => {
   const [showPaymentSettingsForm, setShowPaymentSettingsForm] = useState(false);
   const [pendingPayments, setPendingPayments] = useState([]);
   const [reviews, setReviews] = useState([]);
+  const [showDateWiseMilkReport, setShowDateWiseMilkReport] = useState(false);
+  const [milkReportFilters, setMilkReportFilters] = useState({
+    fromDate: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0],
+    toDate: new Date().toISOString().split('T')[0],
+    cowId: 'all'
+  });
 
   const renderCows = () => {
     const filteredCows = cows.filter(cow => {
@@ -2988,6 +2994,17 @@ const AdminDashboard = () => {
             </button>
 
             <button
+              onClick={() => setShowDateWiseMilkReport(true)}
+              className="bg-gradient-to-r from-indigo-500 to-indigo-600 hover:from-indigo-600 hover:to-indigo-700 text-white border-none px-6 py-4 rounded-lg cursor-pointer flex items-center gap-3 text-sm transition-all duration-300 shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
+            >
+              <GiMilkCarton className="text-xl" />
+              <div className="text-left">
+                <div className="font-semibold">दिनांक वार दूध रिपोर्ट</div>
+                <div className="text-xs opacity-80">कस्टम डेट फिल्टर</div>
+              </div>
+            </button>
+
+            <button
               onClick={() => showOverallReport('cattle-list')}
               className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white border-none px-6 py-4 rounded-lg cursor-pointer flex items-center gap-3 text-sm transition-all duration-300 shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
             >
@@ -3296,6 +3313,119 @@ const AdminDashboard = () => {
     </div>
   );
 
+  const renderDateWiseMilkReportModal = () => {
+    let filteredRecords = [];
+    let totalMilk = 0;
+
+    cows.forEach(cow => {
+      if (milkReportFilters.cowId === 'all' || milkReportFilters.cowId === cow._id) {
+        if (cow.milk_records && cow.milk_records.length > 0) {
+          cow.milk_records.forEach(record => {
+            const recordDate = new Date(record.date).toISOString().split('T')[0];
+            if (recordDate >= milkReportFilters.fromDate && recordDate <= milkReportFilters.toDate) {
+              filteredRecords.push({
+                cow_name: `${cow.listing_id} - ${cow.name}`,
+                date: recordDate,
+                morning_milk: record.morning_milk || 0,
+                evening_milk: record.evening_milk || 0,
+                total_milk: record.total_milk || 0
+              });
+              totalMilk += (record.total_milk || 0);
+            }
+          });
+        }
+      }
+    });
+
+    filteredRecords.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 p-4">
+        <div className="bg-primary-700 rounded-xl w-full max-w-4xl max-h-[90vh] overflow-hidden border border-secondary-700 shadow-2xl flex flex-col">
+          <div className="flex justify-between items-center p-6 border-b border-secondary-700 shrink-0">
+            <h3 className="text-white m-0 text-lg font-semibold flex items-center gap-2">
+              <GiMilkCarton className="text-accent-blue" /> दिनांक वार दूध उत्पादन रिपोर्ट
+            </h3>
+            <button onClick={() => setShowDateWiseMilkReport(false)} className="bg-secondary-600 hover:bg-secondary-500 text-white text-xl cursor-pointer p-2 w-10 h-10 flex items-center justify-center rounded-lg transition-colors duration-200">×</button>
+          </div>
+          
+          <div className="p-6 border-b border-secondary-700 shrink-0 bg-primary-800">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-white mb-2 text-sm font-medium">से (From Date)</label>
+                <input
+                  type="date"
+                  value={milkReportFilters.fromDate}
+                  onChange={(e) => setMilkReportFilters({...milkReportFilters, fromDate: e.target.value})}
+                  className="w-full p-3 bg-primary-900 border border-secondary-600 rounded-lg text-white text-sm focus:outline-none focus:border-accent-blue"
+                />
+              </div>
+              <div>
+                <label className="block text-white mb-2 text-sm font-medium">तक (To Date)</label>
+                <input
+                  type="date"
+                  value={milkReportFilters.toDate}
+                  onChange={(e) => setMilkReportFilters({...milkReportFilters, toDate: e.target.value})}
+                  className="w-full p-3 bg-primary-900 border border-secondary-600 rounded-lg text-white text-sm focus:outline-none focus:border-accent-blue"
+                />
+              </div>
+              <div>
+                <label className="block text-white mb-2 text-sm font-medium">गाय/भैंस (Cattle)</label>
+                <select
+                  value={milkReportFilters.cowId}
+                  onChange={(e) => setMilkReportFilters({...milkReportFilters, cowId: e.target.value})}
+                  className="w-full p-3 bg-primary-900 border border-secondary-600 rounded-lg text-white text-sm focus:outline-none focus:border-accent-blue"
+                >
+                  <option value="all">सभी (All)</option>
+                  {cows.map(cow => (
+                    <option key={cow._id} value={cow._id}>
+                      {cow.listing_id} - {cow.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            <div className="mt-4 flex justify-between items-center bg-blue-900/30 border border-blue-500/50 p-4 rounded-lg">
+              <span className="text-white font-medium">कुल उत्पादन (इस अवधि में):</span>
+              <span className="text-2xl font-bold text-accent-blue">{totalMilk.toFixed(1)} लीटर</span>
+            </div>
+          </div>
+
+          <div className="overflow-y-auto p-6 flex-1">
+            {filteredRecords.length > 0 ? (
+              <table className="w-full border-collapse">
+                <thead>
+                  <tr>
+                    <th className="p-3 text-left border-b border-secondary-600 text-white font-semibold">तारीख</th>
+                    {milkReportFilters.cowId === 'all' && <th className="p-3 text-left border-b border-secondary-600 text-white font-semibold">पशु का नाम</th>}
+                    <th className="p-3 text-right border-b border-secondary-600 text-white font-semibold">सुबह (L)</th>
+                    <th className="p-3 text-right border-b border-secondary-600 text-white font-semibold">शाम (L)</th>
+                    <th className="p-3 text-right border-b border-secondary-600 text-white font-semibold">कुल (L)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredRecords.map((record, index) => (
+                    <tr key={index} className="hover:bg-primary-600 border-b border-secondary-700">
+                      <td className="p-3 text-secondary-300">{new Date(record.date).toLocaleDateString('hi-IN')}</td>
+                      {milkReportFilters.cowId === 'all' && <td className="p-3 text-secondary-300">{record.cow_name}</td>}
+                      <td className="p-3 text-right text-secondary-300">{record.morning_milk}</td>
+                      <td className="p-3 text-right text-secondary-300">{record.evening_milk}</td>
+                      <td className="p-3 text-right text-accent-blue font-bold">{record.total_milk}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            ) : (
+              <div className="text-center py-8 text-secondary-400">
+                इस अवधि के लिए कोई दूध रिकॉर्ड नहीं मिला।
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -3329,6 +3459,7 @@ const AdminDashboard = () => {
       {showBulkVaccinationForm && renderBulkVaccinationForm()}
       {showBulkDewormingForm && renderBulkDewormingForm()}
       {showMilkForm && renderMilkForm()}
+      {showDateWiseMilkReport && renderDateWiseMilkReportModal()}
     </div>
   );
 };
