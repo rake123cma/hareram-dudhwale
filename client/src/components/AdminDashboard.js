@@ -42,6 +42,13 @@ const AdminDashboard = () => {
     health_summary: '',
     image: ''
   });
+  const [milkData, setMilkData] = useState({
+    cow_id: '',
+    date: new Date().toISOString().split('T')[0],
+    morning_milk: '',
+    evening_milk: ''
+  });
+  const [showMilkForm, setShowMilkForm] = useState(false);
 
   useEffect(() => {
     fetchDashboardData();
